@@ -9,6 +9,7 @@ import { useConversationStore } from '@/stores/useConversationStore'
 import PersonalCard from '@/components/common/PersonalCard.vue'
 import AboutDialog from '@/components/common/AboutDialog.vue'
 import AddTip from '@/components/common/AddTip.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -33,7 +34,7 @@ function loginOut() { authStore.loginOut() }
   <div class="sidebar">
     <!-- Logo / Avatar -->
     <div class="avatar-wrap" @click="showPersonalCard = !showPersonalCard">
-      <img :src="user.img" class="avatar" :alt="user.name" onerror="this.src='/images/vue.jpg'" />
+      <UserAvatar :src="user.img" :name="user.name" :size="38" />
       <span class="status-dot" :class="onlineStatus ? 'online' : 'offline'"></span>
     </div>
     <PersonalCard v-if="showPersonalCard" :user-id="userId" @close="showPersonalCard=false" />

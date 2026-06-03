@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { useFriendStore } from '@/stores/useFriendStore'
 import type { FriendInfo } from '@/types'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const friendStore = useFriendStore()
 const { searchedFriendlist, selectFriendId } = storeToRefs(friendStore)
@@ -20,7 +21,7 @@ function selectFriend(friend: FriendInfo) {
         :class="{ active: friend.id === selectFriendId }"
         @click="selectFriend(friend)"
       >
-        <img :src="friend.img" class="avatar" onerror="this.src='/images/vue.jpg'" />
+        <UserAvatar :src="friend.img" :name="friend.remark || friend.nickname" :size="38" />
         <div class="friend-info">
           <span class="name">{{ friend.remark || friend.nickname }}</span>
           <span class="signature">{{ friend.signature }}</span>

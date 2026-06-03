@@ -2,9 +2,12 @@
 import { computed } from 'vue'
 import type { StateConversationInfo } from '@/types'
 import { useConversationStore } from '@/stores/useConversationStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const props = defineProps<{ conversation: StateConversationInfo; isActive: boolean }>()
 const convStore = useConversationStore()
+
+const isGroup = computed(() => props.conversation.conversationInfo.conversationType === 1)
 
 const lastMessageText = computed(() => {
   const msg = props.conversation.conversationInfo.lastMessage
@@ -20,11 +23,12 @@ const timeText = computed(() => {
   const isToday = d.toDateString() === now.toDateString()
   if (isToday) return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
   const isThisYear = d.getFullYear() === now.getFullYear()
-  if (isThisYear) return `${d.getMonth()+1}月${d.getDate()}日`
+  if (isThisYear) return `${d.getMonth()+1}/${d.getDate()}`
   return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`
 })
 
 const unread = computed(() => props.conversation.conversationInfo.unreadCount?.unread ?? 0)
+const displayName = computed(() => props.conversation.name || props.conversation.conversationInfo.target)
 
 function select() { convStore.selectConversation(props.conversation.conversationInfo.target) }
 </script>
@@ -32,12 +36,17 @@ function select() { convStore.selectConversation(props.conversation.conversation
 <template>
   <div class="conv-item" :class="{ active: isActive, unread: unread > 0 }" @click="select">
     <div class="avatar-wrap">
-      <img :src="conversation.img" class="avatar" onerror="this.src='/images/vue.jpg'" />
+      <UserAvatar
+        :src="conversation.img"
+        :name="displayName"
+        :size="42"
+        :is-group="isGroup"
+      />
       <span v-if="unread > 0" class="unread-badge">{{ unread > 99 ? '99+' : unread }}</span>
     </div>
     <div class="info">
       <div class="top-row">
-        <span class="name">{{ conversation.name || conversation.conversationInfo.target }}</span>
+        <span class="name">{{ displayName }}</span>
         <span class="time">{{ timeText }}</span>
       </div>
       <div class="preview" :class="{ 'has-unread': unread > 0 }">{{ lastMessageText || '暂无消息' }}</div>
@@ -54,7 +63,7 @@ function select() { convStore.selectConversation(props.conversation.conversation
   margin: 1px 8px;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background var(--dur-normal), box-shadow var(--dur-normal);
+  transition: background var(--dur-normal);
   position: relative;
 }
 .conv-item::before {
@@ -70,41 +79,23 @@ function select() { convStore.selectConversation(props.conversation.conversation
   transition: transform var(--dur-normal) var(--ease-out);
 }
 .conv-item:hover { background: var(--bg-elevated); }
-.conv-item.active {
-  background: var(--accent-subtle);
-}
-.conv-item.active::before {
-  transform: translateY(-50%) scaleY(1);
-}
+.conv-item.active { background: var(--accent-subtle); }
+.conv-item.active::before { transform: translateY(-50%) scaleY(1); }
 
-/* Avatar */
 .avatar-wrap { position: relative; flex-shrink: 0; }
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  border: 1px solid var(--border);
-}
 .unread-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
+  top: -4px; right: -4px;
+  min-width: 16px; height: 16px;
   padding: 0 4px;
-  background: var(--danger);
-  color: #fff;
+  background: var(--danger); color: #fff;
   border-radius: var(--radius-pill);
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 9.5px; font-weight: 600;
   font-family: var(--font-mono);
-  line-height: 16px;
-  text-align: center;
+  line-height: 16px; text-align: center;
   border: 1.5px solid var(--bg-overlay);
 }
 
-/* Info */
 .info { flex: 1; min-width: 0; }
 .top-row {
   display: flex;
@@ -113,29 +104,18 @@ function select() { convStore.selectConversation(props.conversation.conversation
   margin-bottom: 3px;
 }
 .name {
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: 13.5px; font-weight: 500;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-  margin-right: 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; min-width: 0; margin-right: 8px;
 }
-.active .name { color: var(--text-primary); }
 .time {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-muted);
-  flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--text-muted); flex-shrink: 0;
 }
 .preview {
-  font-size: 12px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   line-height: 1.4;
 }
 .preview.has-unread { color: var(--text-secondary); font-weight: 500; }

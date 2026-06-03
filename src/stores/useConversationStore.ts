@@ -60,7 +60,7 @@ export const useConversationStore = defineStore('conversation', () => {
     if (!update) {
       updateStateConversationInfo = {
         name: protoConversationInfo.target,
-        img: 'images/vue.jpg',
+        img: '',
         conversationInfo: protoConversationInfo
       }
       conversations.value.unshift(updateStateConversationInfo)

@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/useUIStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { useGroupStore } from '@/stores/useGroupStore'
 import MarkdownText from './MarkdownText.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
 import BenzAMRRecorder from 'benz-amr-recorder'
 
@@ -137,7 +138,7 @@ function toggleAudio() {
   </div>
 
   <div v-else-if="!isNotification" class="message-row" :class="{ self: isSelf }">
-    <img class="avatar" :src="avatarSrc" onerror="this.src='/images/vue.jpg'" />
+    <UserAvatar :src="avatarSrc" :name="senderName" :size="34" radius="var(--radius-sm)" />
     <div class="bubble-wrap">
       <div v-if="!isSingleConversation && !isSelf" class="sender-name">{{ senderName }}</div>
       <div class="bubble-meta" :class="{ self: isSelf }">
