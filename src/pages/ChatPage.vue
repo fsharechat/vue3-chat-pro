@@ -80,6 +80,9 @@ async function onContextMenuSelect(key: string) {
       </div>
     </main>
     <div v-else class="chat-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
       <p>选择一个会话开始聊天</p>
     </div>
 
@@ -101,9 +104,15 @@ async function onContextMenuSelect(key: string) {
 
 <style scoped>
 .chat-page { display: flex; height: 100%; overflow: hidden; }
-.conv-panel { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); }
-.chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-chat); }
+.conv-panel { width: 270px; flex-shrink: 0; }
+.chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-base); }
 .message-area { flex: 1; min-height: 0; overflow: hidden; }
-.input-area { flex-shrink: 0; height: 200px; }
-.chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; }
+.input-area { flex-shrink: 0; height: 196px; }
+.chat-empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text-muted); gap: 12px;
+}
+.chat-empty svg { color: var(--text-muted); opacity: 0.4; }
+.chat-empty p { font-size: 13.5px; }
 </style>

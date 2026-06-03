@@ -34,7 +34,7 @@ onUnmounted(() => document.removeEventListener('visibilitychange', onVisibility)
 </template>
 
 <style scoped>
-.app-layout { display: flex; width: 100vw; height: 100vh; background: var(--bg-primary); overflow: hidden; }
-.sidebar { flex-shrink: 0; width: 60px; background: var(--bg-secondary); }
+.app-layout { display: flex; width: 100vw; height: 100vh; background: var(--bg-base); overflow: hidden; }
+.sidebar { flex-shrink: 0; }
 .main { flex: 1; min-width: 0; overflow: hidden; }
 </style>

@@ -80,9 +80,13 @@ function onEnter(e: KeyboardEvent) {
   <div class="login-page">
     <div class="login-card">
       <div class="login-logo">
-        <img src="/images/vue.jpg" alt="飞享" class="logo-img" />
-        <h2>飞享 · 即时通讯</h2>
-        <p class="subtitle">输入账号进行安全登录</p>
+        <div class="logo-wrap">
+          <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <h2>飞享</h2>
+        <p class="subtitle">即时通讯 · 安全登录</p>
       </div>
       <div class="form-group">
         <label>手机号码 / 邮箱</label>
@@ -108,20 +112,59 @@ function onEnter(e: KeyboardEvent) {
 .login-page {
   width: 100vw; height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  background: var(--bg-primary);
+  background: var(--bg-void);
+  /* Subtle grid pattern */
+  background-image:
+    linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 .login-card {
-  width: 360px; padding: 40px 32px;
-  background: var(--bg-secondary);
-  border-radius: 12px;
+  width: 380px;
+  padding: 44px 40px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 32px var(--shadow);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(99,102,241,0.05);
+  position: relative;
+  overflow: hidden;
 }
-.login-logo { text-align: center; margin-bottom: 32px; }
-.logo-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; }
-.login-logo h2 { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+/* Top accent line */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.login-logo { text-align: center; margin-bottom: 36px; }
+.logo-wrap {
+  width: 64px; height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-subtle);
+  border: 1px solid var(--border-accent);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.logo-icon { color: var(--accent); }
+.login-logo h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
 .subtitle { font-size: 13px; color: var(--text-muted); }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
-.login-btn { margin-top: 8px; }
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.login-btn { margin-top: 10px; }
 </style>

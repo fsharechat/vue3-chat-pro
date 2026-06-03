@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/useUIStore'
@@ -11,6 +11,7 @@ import AboutDialog from '@/components/common/AboutDialog.vue'
 import AddTip from '@/components/common/AddTip.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 const themeStore = useThemeStore()
@@ -23,7 +24,6 @@ const showPersonalCard = ref(false)
 const showAboutDialog = ref(false)
 const showAddTip = ref(false)
 
-function togglePersonalCard() { showPersonalCard.value = !showPersonalCard.value }
 function goConversation() { convStore.searchText = ''; router.push('/conversation') }
 function goFriend() { convStore.searchText = ''; router.push('/friend') }
 function loginOut() { authStore.loginOut() }
@@ -31,40 +31,76 @@ function loginOut() { authStore.loginOut() }
 
 <template>
   <div class="sidebar">
-    <div class="avatar-wrap" @click="togglePersonalCard">
+    <!-- Logo / Avatar -->
+    <div class="avatar-wrap" @click="showPersonalCard = !showPersonalCard">
       <img :src="user.img" class="avatar" :alt="user.name" onerror="this.src='/images/vue.jpg'" />
       <span class="status-dot" :class="onlineStatus ? 'online' : 'offline'"></span>
     </div>
     <PersonalCard v-if="showPersonalCard" :user-id="userId" @close="showPersonalCard=false" />
 
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Navigation -->
     <nav class="nav">
-      <div class="nav-item">
-        <router-link to="/conversation" class="nav-link" active-class="active" @click="goConversation">
-          <span class="badge" v-if="unreadTotalCount > 0">{{ unreadTotalCount > 99 ? '99+' : unreadTotalCount }}</span>
-          <i class="iconfont icon-dkw_xiaoxi"></i>
-        </router-link>
-      </div>
-      <div class="nav-item">
-        <router-link to="/friend" class="nav-link" active-class="active" @click="goFriend">
-          <i class="iconfont icon-pengyou"></i>
-        </router-link>
-      </div>
-      <div class="nav-item" style="position:relative">
-        <div class="nav-link" @click="showAddTip = !showAddTip">
-          <i class="iconfont icon-jiahaoyou"></i>
-        </div>
+      <button
+        class="nav-btn"
+        :class="{ active: route.path.startsWith('/conversation') }"
+        title="消息"
+        @click="goConversation"
+      >
+        <span v-if="unreadTotalCount > 0" class="badge">{{ unreadTotalCount > 99 ? '99+' : unreadTotalCount }}</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </button>
+
+      <button
+        class="nav-btn"
+        :class="{ active: route.path.startsWith('/friend') }"
+        title="好友"
+        @click="goFriend"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </button>
+
+      <div style="position:relative">
+        <button class="nav-btn" title="添加" @click="showAddTip = !showAddTip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
         <AddTip v-if="showAddTip" @close="showAddTip=false" />
       </div>
     </nav>
 
+    <!-- Footer actions -->
     <footer class="footer">
-      <button class="icon-btn" :title="isDark ? '切换浅色' : '切换深色'" @click="themeStore.toggle()">
-        <span>{{ isDark ? '☀️' : '🌙' }}</span>
+      <button class="footer-btn" :title="isDark ? '浅色模式' : '深色模式'" @click="themeStore.toggle()">
+        <svg v-if="isDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
-      <button class="icon-btn about-btn" title="关于" @click="showAboutDialog=true">i</button>
-      <div class="nav-link logout-icon" title="退出" @click="loginOut">
-        <i class="iconfont icon-tuichu"></i>
-      </div>
+      <button class="footer-btn" title="关于" @click="showAboutDialog=true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      </button>
+      <button class="footer-btn danger-btn" title="退出登录" @click="loginOut">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </footer>
 
     <AboutDialog v-if="showAboutDialog" @close="showAboutDialog=false" />
@@ -72,54 +108,144 @@ function loginOut() { authStore.loginOut() }
 </template>
 
 <style scoped>
-@import '@/assets/fonts/iconfont.css';
 .sidebar {
-  display: flex; flex-direction: column; align-items: center;
-  width: 60px; height: 100%;
-  background: var(--bg-secondary);
-  padding: 12px 0; gap: 0; position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  height: 100%;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0 12px;
+  position: relative;
+  flex-shrink: 0;
 }
-.avatar-wrap { position: relative; margin-bottom: 8px; cursor: pointer; }
-.avatar { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; display: block; }
+
+/* ── Avatar ──────────────────────────────── */
+.avatar-wrap {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: transform var(--dur-normal) var(--ease-out);
+}
+.avatar-wrap:hover { transform: scale(1.05); }
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
 .status-dot {
-  position: absolute; bottom: -2px; right: -2px;
-  width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-secondary);
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-surface);
 }
-.online { background: var(--accent-green); }
-.offline { background: var(--danger); }
-.nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 16px; }
-.nav-item { position: relative; }
-.nav-link {
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 8px;
-  font-size: 22px; color: var(--text-muted); cursor: pointer;
-  transition: background 0.15s, color 0.15s; position: relative;
+.online  { background: var(--color-online); animation: pulse-online 2.5s ease infinite; }
+.offline { background: var(--text-muted); }
+
+/* ── Divider ─────────────────────────────── */
+.divider {
+  width: 32px;
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+  flex-shrink: 0;
 }
-.nav-link:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.nav-link.active { color: var(--accent); background: var(--bg-tertiary); }
+
+/* ── Nav ─────────────────────────────────── */
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.nav-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-normal), color var(--dur-normal);
+}
+.nav-btn::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: transform var(--dur-normal) var(--ease-out);
+}
+.nav-btn:hover {
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+.nav-btn.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+.nav-btn.active::before {
+  transform: translateY(-50%) scaleY(1);
+}
 .badge {
-  position: absolute; top: 2px; right: 2px;
-  min-width: 16px; height: 16px; padding: 0 4px;
-  background: var(--danger); color: #fff;
-  border-radius: 8px; font-size: 10px; line-height: 16px;
-  text-align: center; z-index: 1;
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 15px;
+  text-align: center;
+  font-family: var(--font-mono);
 }
+
+/* ── Footer ──────────────────────────────── */
 .footer {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  width: 100%;
 }
-.icon-btn {
-  width: 36px; height: 36px; border: none; background: transparent;
-  color: var(--text-muted); cursor: pointer; border-radius: 8px;
-  font-size: 16px; display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s, color 0.15s;
+.footer-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-normal), color var(--dur-normal);
 }
-.icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.about-btn {
-  font-style: italic; font-family: 'Times New Roman', serif;
-  font-weight: bold; font-size: 14px;
-  border: 1.5px solid var(--text-muted); border-radius: 50%;
-  width: 24px; height: 24px;
+.footer-btn:hover {
+  background: var(--bg-overlay);
+  color: var(--text-secondary);
 }
-.logout-icon { font-size: 20px; }
+.danger-btn:hover {
+  background: rgba(248, 113, 113, 0.10);
+  color: var(--danger);
+}
 </style>

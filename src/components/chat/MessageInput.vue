@@ -168,68 +168,158 @@ function onPaste(e: ClipboardEvent) {
 
 <template>
   <div class="message-input">
+    <!-- Toolbar -->
     <div class="toolbar">
       <n-popover v-model:show="showEmoji" trigger="click" placement="top-start" :show-arrow="false" style="padding:0">
         <template #trigger>
-          <button class="tool-btn" title="表情"><i class="iconfont icon-biaoqing"></i></button>
+          <button class="tool-btn" title="表情">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </button>
         </template>
         <EmojiPicker :emojis="emojis ?? []" @pick="pickEmoji" />
       </n-popover>
+
       <label class="tool-btn" title="发送图片">
-        <i class="iconfont icon-tupian"></i>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+        </svg>
         <input ref="uploadImgRef" type="file" accept="image/*" class="hidden-input" @change="onImageSelected" />
       </label>
+
       <label class="tool-btn" title="发送文件">
-        <i class="iconfont icon-wenjian"></i>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
         <input ref="uploadFileRef" type="file" class="hidden-input" @change="onFileSelected" />
       </label>
+
+      <div class="toolbar-divider"></div>
+
       <button v-if="convStore.isSingleConversation" class="tool-btn" title="语音通话" @click="startAudioCall">
-        <i class="iconfont icon-dianhua"></i>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.4 2 2 0 0 1 3.62 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.4a16 16 0 0 0 5.66 5.66l1.47-1.47a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
       </button>
+
       <button class="tool-btn" title="视频通话" @click="startVideoCall">
-        <i class="iconfont icon-ai-video"></i>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
       </button>
     </div>
+
+    <!-- Text area -->
     <textarea
       ref="textareaRef"
       v-model="content"
       class="text-input"
-      placeholder="输入消息，Enter 发送，Ctrl+Enter 换行"
+      placeholder="发送消息…"
       @keydown="onKeydown"
       @paste="onPaste"
       @focus="convStore.clearUnreadStatus()"
       @click="showEmoji = false"
     ></textarea>
+
+    <!-- Send -->
     <div class="send-row">
-      <button class="send-btn" :class="{ active: sendBtnActive }" @click="send">发送</button>
+      <span class="shortcut-hint">Enter 发送 · Ctrl+Enter 换行</span>
+      <button class="send-btn" :class="{ active: sendBtnActive }" :disabled="!sendBtnActive" @click="send">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        发送
+      </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-@import '@/assets/fonts/iconfont.css';
-.message-input { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); border-top: 1px solid var(--border); }
-.toolbar { display: flex; align-items: center; gap: 2px; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+.message-input {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
 .tool-btn {
-  position: relative; width: 32px; height: 32px; border: none; background: transparent;
-  color: var(--text-muted); cursor: pointer; border-radius: 6px;
-  font-size: 18px; display: flex; align-items: center; justify-content: center;
-  transition: background 0.1s, color 0.1s;
+  position: relative;
+  width: 30px; height: 30px;
+  border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--dur-normal), color var(--dur-normal);
 }
-.tool-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.tool-btn:hover { background: var(--bg-elevated); color: var(--text-secondary); }
+.toolbar-divider {
+  width: 1px; height: 16px;
+  background: var(--border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
 .hidden-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; width: 100%; height: 100%; }
+
+/* Textarea */
 .text-input {
-  flex: 1; padding: 10px 14px; background: transparent;
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
   border: none; outline: none; resize: none;
-  color: var(--text-primary); font-size: 14px; font-family: inherit;
-  line-height: 1.6;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  line-height: 1.7;
 }
-.send-row { display: flex; justify-content: flex-end; padding: 6px 12px 10px; }
+.text-input::placeholder { color: var(--text-muted); }
+
+/* Send row */
+.send-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 8px 16px 12px;
+}
+.shortcut-hint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
 .send-btn {
-  padding: 6px 20px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--bg-tertiary); color: var(--text-muted); cursor: pointer;
-  font-size: 13px; transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-out);
 }
-.send-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.send-btn.active:hover { background: var(--accent-hover); }
+.send-btn:disabled { cursor: default; }
+.send-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.send-btn.active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
 </style>
