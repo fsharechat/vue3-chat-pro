@@ -2,9 +2,15 @@ import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { CONVERSATION_MAX_MESSAGE_SIZE } from '@/constant'
 import type { StateChatMessage, ProtoMessage } from '@/types'
+import { useConversationStore } from './useConversationStore'
+import LocalStore from '@/websocket/store/localstore'
+import MessageStatus from '@/websocket/message/messageStatus'
+import ProtoConversationInfo from '@/websocket/model/protoConversationInfo'
+import UnreadCount from '@/websocket/model/unReadCount'
+import MessageConfig from '@/websocket/message/messageConfig'
+import RecallMessageNotification from '@/websocket/message/notification/recallMessageNotification'
 
 export const useMessageStore = defineStore('message', () => {
-  const LocalStore = require('@/websocket/store/localstore').default
   const messages = ref<StateChatMessage[]>([])
   const fileDownloadStatus = ref<any[]>([])
   const streamingMap = ref<Record<string, { target: string; virtualId: string }>>({})
@@ -12,7 +18,6 @@ export const useMessageStore = defineStore('message', () => {
   const pendingReplacementTargets = ref<string[]>([])
 
   const selectedChat = computed(() => {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
     const chat = messages.value.find(m => m.target === convStore.selectTarget)
     return chat ?? { name: '', target: convStore.selectTarget, protoMessages: [] }
@@ -21,7 +26,6 @@ export const useMessageStore = defineStore('message', () => {
   const currentMessages = computed(() => selectedChat.value.protoMessages ?? [])
 
   function addProtoMessage(protoMessage: ProtoMessage) {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
 
     // Remove stream placeholder if pending
@@ -53,7 +57,6 @@ export const useMessageStore = defineStore('message', () => {
           }
           chat.protoMessages.push(protoMessage)
         } else {
-          const MessageStatus = require('@/websocket/message/messageStatus').default
           if (existing.messageUid === '0') {
             existing.messageUid = protoMessage.messageUid
             existing.status = MessageStatus.Sent
@@ -68,8 +71,6 @@ export const useMessageStore = defineStore('message', () => {
     }
 
     if (!isExist) {
-      const ProtoConversationInfo = require('@/websocket/model/protoConversationInfo').default
-      const UnreadCount = require('@/websocket/model/unReadCount').default
       const pci = new ProtoConversationInfo()
       pci.conversationType = protoMessage.conversationType
       pci.target = protoMessage.target
@@ -82,9 +83,7 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function preAddProtoMessage(protoMessage: ProtoMessage) {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
-    const MessageConfig = require('@/websocket/message/messageConfig').default
     if (!MessageConfig.isDisplayableMessage(protoMessage)) return
 
     const sc = convStore.conversations.find((c: any) => c.conversationInfo.target === protoMessage.target)
@@ -112,7 +111,6 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function deleteMessage(messageId: string) {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
     const chat = messages.value.find(m => m.target === convStore.selectTarget)
     if (!chat) return
@@ -121,7 +119,6 @@ export const useMessageStore = defineStore('message', () => {
   }
 
   function updateMessageContent(notifyMsg: any) {
-    const RecallMessageNotification = require('@/websocket/message/notification/recallMessageNotification').default
     for (const chat of messages.value) {
       for (const msg of chat.protoMessages as any[]) {
         if (msg.messageUid === notifyMsg.messageUid) {

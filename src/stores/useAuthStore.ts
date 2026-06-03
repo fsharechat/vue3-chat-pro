@@ -2,6 +2,14 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { KEY_VUE_USER_ID, KEY_VUE_TOKEN } from '@/constant'
 import type { ErrorHandler, StoreDispatcher } from '@/types'
+import { useConversationStore } from './useConversationStore'
+import { useMessageStore } from './useMessageStore'
+import { useFriendStore } from './useFriendStore'
+import { useGroupStore } from './useGroupStore'
+import { useUIStore } from './useUIStore'
+import VueWebSocket from '@/websocket/index'
+import webSocketClient from '@/websocket/websocketcli'
+import LocalStore from '@/websocket/store/localstore'
 
 export const useAuthStore = defineStore('auth', () => {
   const userId = ref(localStorage.getItem(KEY_VUE_USER_ID) ?? '')
@@ -13,12 +21,6 @@ export const useAuthStore = defineStore('auth', () => {
   function initData(errorHandler: ErrorHandler) {
     userId.value = localStorage.getItem(KEY_VUE_USER_ID) ?? ''
     token.value = localStorage.getItem(KEY_VUE_TOKEN) ?? ''
-
-    const { useConversationStore } = require('@/stores/useConversationStore')
-    const { useMessageStore } = require('@/stores/useMessageStore')
-    const { useFriendStore } = require('@/stores/useFriendStore')
-    const { useGroupStore } = require('@/stores/useGroupStore')
-    const { useUIStore } = require('@/stores/useUIStore')
 
     const conversationStore = useConversationStore()
     const messageStore = useMessageStore()
@@ -52,10 +54,6 @@ export const useAuthStore = defineStore('auth', () => {
       else console.warn('[StoreDispatcher] unhandled action:', action)
     }
 
-    const VueWebSocket = require('@/websocket/index').default
-    const webSocketClient = require('@/websocket/websocketcli').default
-    const LocalStore = require('@/websocket/store/localstore').default
-
     vueSocket = new VueWebSocket(errorHandler, dispatcher)
     webSocketClient.setInstance(vueSocket)
 
@@ -85,9 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(KEY_VUE_TOKEN, '')
     vueSocket?.sendDisConnectMessage()
     vueSocket = null
-    const webSocketClient = require('@/websocket/websocketcli').default
     webSocketClient.setInstance(null)
-    const LocalStore = require('@/websocket/store/localstore').default
     LocalStore.clearLocalStore()
   }
 

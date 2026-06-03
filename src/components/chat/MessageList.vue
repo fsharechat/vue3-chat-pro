@@ -10,6 +10,9 @@ import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import MessageBubble from './MessageBubble.vue'
 import GroupInfo from '@/components/group/GroupInfo.vue'
+import Conversation from '@/websocket/model/conversation'
+import ProtoMessage from '@/websocket/message/protomessage'
+import LocalStore from '@/websocket/store/localstore'
 
 const emit = defineEmits<{
   (e: 'context-menu', event: MouseEvent, msg: any): void
@@ -60,15 +63,13 @@ async function onScroll(e: Event) {
   const beforeUid = firstMsg?.messageUid ?? '0'
   const type = isSingleConversation.value ? 0 : 1
   try {
-    const Conversation = require('@/websocket/model/conversation').default
-    const ProtoMessage = require('@/websocket/message/protomessage').default
     const conv = new Conversation(type, selectedChat.value.target, 0)
     const data = await webSocketClient.getRemoteMessages(conv, beforeUid, 20)
     if (data?.result) {
       const parsed = JSON.parse(data.result)
       if (parsed.count > 0) {
         for (const raw of parsed.messageResponseList) {
-          msgStore.addOldMessage(ProtoMessage.toProtoMessage(raw))
+          msgStore.addOldMessage(ProtoMessage.toProtoMessage(raw) as any)
         }
         convStore.isLoadRemoteMessage = true
       }
@@ -89,7 +90,6 @@ async function toggleGroupInfo() {
       convStore.deleteConversation(selectedChat.value.target)
       return
     }
-    const LocalStore = require('@/websocket/store/localstore').default
     const isMember = data.result.some((m: any) => m.memberId === LocalStore.getUserId())
     if (!isMember) {
       message.error('您不是群组成员，即将删除会话')

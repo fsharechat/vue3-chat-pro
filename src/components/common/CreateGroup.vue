@@ -5,6 +5,7 @@ import { useGroupStore } from '@/stores/useGroupStore'
 import { useFriendStore } from '@/stores/useFriendStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useConversationStore } from '@/stores/useConversationStore'
 import { useMessage } from 'naive-ui'
 import webSocketClient from '@/websocket/websocketcli'
 
@@ -34,7 +35,6 @@ function toggleSelect(wxid: string) {
 
 async function confirm() {
   try {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
     if (groupOperateState.value === 0 || groupOperateState.value === 3) {
       const name = groupName.value.trim() || selected.value.map(id => friendStore.friendlist.find(f => f.wxid === id)?.remark ?? id).join('、')

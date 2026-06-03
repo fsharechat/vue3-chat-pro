@@ -1,9 +1,9 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { StateConversationInfo } from '@/types'
+import LocalStore from '@/websocket/store/localstore'
 
 export const useConversationStore = defineStore('conversation', () => {
-  const LocalStore = require('@/websocket/store/localstore').default
   const conversations = ref<StateConversationInfo[]>([])
   const selectTarget = ref(LocalStore.getSelectTarget() ?? '')
   const searchText = ref('')

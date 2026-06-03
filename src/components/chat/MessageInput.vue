@@ -9,6 +9,16 @@ import { useGroupStore } from '@/stores/useGroupStore'
 import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import EmojiPicker from './EmojiPicker.vue'
+import SendMessage from '@/websocket/message/sendMessage'
+import Message from '@/websocket/message/message'
+import ProtoMessage from '@/websocket/message/protomessage'
+import FscMessage from '@/websocket/message/FscMessage'
+import TextMessageContent from '@/websocket/message/textMessageContent'
+import ImageMessageContent from '@/websocket/message/imageMessageContent'
+import FileMessageContent from '@/websocket/message/fileMessageContent'
+import MessageContentMediaType from '@/websocket/message/messageContentMediaType'
+import LocalStore from '@/websocket/store/localstore'
+import axios from 'axios'
 
 const msgStore = useMessageStore()
 const convStore = useConversationStore()
@@ -28,16 +38,11 @@ const sendBtnActive = computed(() => content.value.trim().length > 0)
 
 function buildAndSend(mc: any) {
   try {
-    const SendMessage = require('@/websocket/message/sendMessage').default
-    const Message = require('@/websocket/message/message').default
-    const ProtoMessage = require('@/websocket/message/protomessage').default
-    const FscMessage = require('@/websocket/message/FscMessage').default
-
     const sm = new SendMessage(convStore.selectTarget, mc)
     const m = Message.conert2Message(sm)
     const protoMsg = ProtoMessage.convertToProtoMessage(m)
     const fscMsg = FscMessage.convertToFscMessage(m)
-    msgStore.preAddProtoMessage(protoMsg)
+    msgStore.preAddProtoMessage(protoMsg as any)
     ;(webSocketClient as any)._instance?.sendMessage(fscMsg)
     return protoMsg
   } catch (e) {
@@ -49,7 +54,6 @@ function buildAndSend(mc: any) {
 function send() {
   if (!content.value.trim()) { message.warning('不能发送空白信息'); return }
   try {
-    const TextMessageContent = require('@/websocket/message/textMessageContent').default
     const mc = new TextMessageContent(content.value)
     buildAndSend(mc)
     content.value = ''
@@ -78,9 +82,6 @@ async function onImageSelected(e: Event) {
 
 async function sendImage(file: File) {
   try {
-    const MessageContentMediaType = require('@/websocket/message/messageContentMediaType').default
-    const LocalStore = require('@/websocket/store/localstore').default
-    const ImageMessageContent = require('@/websocket/message/imageMessageContent').default
     const key = `${MessageContentMediaType.Image}-${LocalStore.getUserId()}-${Date.now()}-${file.name}`
     const data = await webSocketClient.getMinioUploadUrl(MessageContentMediaType.Image, key)
     if (data?.code !== SUCCESS_CODE) return
@@ -121,10 +122,6 @@ async function onFileSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   try {
-    const MessageContentMediaType = require('@/websocket/message/messageContentMediaType').default
-    const LocalStore = require('@/websocket/store/localstore').default
-    const FileMessageContent = require('@/websocket/message/fileMessageContent').default
-    const axios = require('axios').default
     const key = `${MessageContentMediaType.File}-${LocalStore.getUserId()}-${Date.now()}-${file.name}`
     const data = await webSocketClient.getMinioUploadUrl(MessageContentMediaType.File, key)
     if (data?.code !== SUCCESS_CODE) return

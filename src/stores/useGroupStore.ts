@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { GroupInfo, GroupMember } from '@/types'
+import { useConversationStore } from './useConversationStore'
 
 export const useGroupStore = defineStore('group', () => {
   const groupInfoList = ref<GroupInfo[]>([])
@@ -12,13 +13,11 @@ export const useGroupStore = defineStore('group', () => {
   const groupCallMembers = ref<{ uid: string; name: string }[]>([])
 
   const currentGroupMembers = computed(() => {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const target = useConversationStore().selectTarget
     return groupMemberMap.value.get(target) ?? []
   })
 
   const currentGroupMemberCount = computed(() => {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const target = useConversationStore().selectTarget
     return groupInfoList.value.find(g => g.target === target)?.memberCount ?? 0
   })
@@ -29,7 +28,6 @@ export const useGroupStore = defineStore('group', () => {
       if (idx !== -1) groupInfoList.value.splice(idx, 1, info)
       else groupInfoList.value.push(info)
     }
-    const { useConversationStore } = require('@/stores/useConversationStore')
     useConversationStore().updateConversationIntro(infos)
   }
 

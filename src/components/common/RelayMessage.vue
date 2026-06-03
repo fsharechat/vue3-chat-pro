@@ -3,6 +3,9 @@ import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/stores/useUIStore'
 import { useFriendStore } from '@/stores/useFriendStore'
 import webSocketClient from '@/websocket/websocketcli'
+import SendMessage from '@/websocket/message/sendMessage'
+import Message from '@/websocket/message/message'
+import FscMessage from '@/websocket/message/FscMessage'
 
 const uiStore = useUIStore()
 const friendStore = useFriendStore()
@@ -13,9 +16,6 @@ function relay(targetWxid: string) {
   const msg = uiStore.currentRightMenuMessage
   if (!msg) return
   try {
-    const SendMessage = require('@/websocket/message/sendMessage').default
-    const Message = require('@/websocket/message/message').default
-    const FscMessage = require('@/websocket/message/FscMessage').default
     const sm = new SendMessage(targetWxid, msg.content)
     const m = Message.conert2Message(sm)
     const fsc = FscMessage.convertToFscMessage(m)

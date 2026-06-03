@@ -10,6 +10,8 @@ import FriendList from '@/components/friend/FriendList.vue'
 import FriendInfo from '@/components/friend/FriendInfo.vue'
 import FriendRequestPanel from '@/components/friend/FriendRequest.vue'
 import SearchFriendDialog from '@/components/friend/SearchFriendDialog.vue'
+import ProtoConversationInfo from '@/websocket/model/protoConversationInfo'
+import UnreadCount from '@/websocket/model/unReadCount'
 
 const friendStore = useFriendStore()
 const convStore = useConversationStore()
@@ -25,15 +27,13 @@ function sendMessage() {
   const target = selectedFriend.value.wxid
   const existing = convStore.conversations.find(c => c.conversationInfo.target === target)
   if (!existing) {
-    const ProtoConversationInfo = require('@/websocket/model/protoConversationInfo').default
-    const UnreadCount = require('@/websocket/model/unReadCount').default
     const pci = new ProtoConversationInfo()
     pci.conversationType = 0; pci.target = target; pci.line = 0
     pci.timestamp = Date.now(); pci.unreadCount = new UnreadCount()
     convStore.conversations.unshift({
       name: selectedFriend.value.remark || selectedFriend.value.nickname,
       img: selectedFriend.value.img,
-      conversationInfo: pci
+      conversationInfo: pci as any
     })
   }
   convStore.selectTarget = target

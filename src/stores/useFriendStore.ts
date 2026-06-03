@@ -1,6 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { FriendInfo, FriendData, FriendRequest } from '@/types'
+import { useConversationStore } from './useConversationStore'
+import { useAuthStore } from './useAuthStore'
+import { pinyin } from 'pinyin-pro'
 
 export const useFriendStore = defineStore('friend', () => {
   const friendlist = ref<FriendInfo[]>([{
@@ -46,7 +49,6 @@ export const useFriendStore = defineStore('friend', () => {
     if (friendlist.value.length === 0) {
       friendlist.value.push({ id: 0, wxid: 'new', initial: '新的朋友', img: 'images/newfriend.jpg', signature: '', nickname: '新的朋友', sex: 0, remark: '新的朋友', area: '', mobile: '' })
     }
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
 
     for (const currentUser of users) {
@@ -56,7 +58,6 @@ export const useFriendStore = defineStore('friend', () => {
       if (friendData?.alias) {
         currentUser.remark = friendData.alias
         try {
-          const { pinyin } = require('pinyin-pro')
           const pi = pinyin(currentUser.remark, { pattern: 'first', toneType: 'none', type: 'array' })
           const initial = pi[0]
           currentUser.initial = /^[A-Za-z]/.test(initial) ? initial.toUpperCase() : '#'
@@ -98,7 +99,6 @@ export const useFriendStore = defineStore('friend', () => {
   }
 
   function updateSearchUser(users: any[]) {
-    const { useAuthStore } = require('@/stores/useAuthStore')
     const authStore = useAuthStore()
     searchUsers.value = users.filter(u => !friendlist.value.find(f => f.wxid === u.uid) && u.uid !== authStore.userId)
   }

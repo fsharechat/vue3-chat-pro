@@ -1,6 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { StateMessageReport, ProtoMessage } from '@/types'
+import { useConversationStore } from './useConversationStore'
+import { useGroupStore } from './useGroupStore'
+import { useAuthStore } from './useAuthStore'
 
 export const useUIStore = defineStore('ui', () => {
   const onlineStatus = ref(false)
@@ -80,7 +83,6 @@ export const useUIStore = defineStore('ui', () => {
   let _outGoingNotify: any = null
 
   const unreadTotalCount = computed(() => {
-    const { useConversationStore } = require('@/stores/useConversationStore')
     const convStore = useConversationStore()
     let total = 0
     for (const sc of convStore.conversations) {
@@ -96,9 +98,9 @@ export const useUIStore = defineStore('ui', () => {
     return total
   })
 
-  function initNotify() {
+  async function initNotify() {
     try {
-      const Notify = require('@wcjiang/notify').default
+      const Notify = (await import('@wcjiang/notify')).default
       _notify = new Notify({ effect: 'flash', interval: 500, audio: { file: ['audio/notify.mp3'] } })
       _inCommingNotify = new Notify({ audio: { file: ['audio/incoming_call_ring.mp3'] } })
       _outGoingNotify = new Notify({ audio: { file: ['audio/outgoing_call_ring.mp3'] } })
@@ -113,7 +115,6 @@ export const useUIStore = defineStore('ui', () => {
   function visibilityChange(state: string) { visibilityState.value = state }
 
   function updateUserInfos(infos: any[]) {
-    const { useAuthStore } = require('@/stores/useAuthStore')
     const authStore = useAuthStore()
     for (const info of infos) {
       if (info.uid === authStore.userId) {
@@ -141,8 +142,6 @@ export const useUIStore = defineStore('ui', () => {
 
   function uploadReport(protoMessage: ProtoMessage, vueSocket: any) {
     if (protoMessage.direction !== 1) return
-    const { useConversationStore } = require('@/stores/useConversationStore')
-    const { useGroupStore } = require('@/stores/useGroupStore')
     const convStore = useConversationStore()
     const groupStore = useGroupStore()
 

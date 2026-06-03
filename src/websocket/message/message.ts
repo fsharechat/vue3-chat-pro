@@ -1,9 +1,9 @@
 // @ts-nocheck
 import Conversation from '../model/conversation'
 import MessageStatus from './messageStatus'
-import store from '../../store'
 import LocalStore from '../store/localstore';
 import MessageShardingUtil from '../utils/MessageShardingUtil';
+import { useConversationStore } from '@/stores/useConversationStore';
 /***
  *  message in json format
     {
@@ -92,11 +92,12 @@ export default class Message {
     static conert2Message(sendMessage){
         var message = new Message();
         var target = sendMessage.target;
+        const convStore = useConversationStore();
         if(!target){
-            target = store.state.selectTarget;
+            target = convStore.selectTarget;
         }
         console.log("to message target "+target);
-        let stateConversationInfo =  store.state.conversations.find(conversation => conversation.conversationInfo.target === target);
+        let stateConversationInfo = convStore.conversations.find(conversation => conversation.conversationInfo.target === target);
         console.log("conversationtype "+stateConversationInfo.conversationInfo.conversationType +" target "+stateConversationInfo.conversationInfo.target);
         message.conversation = new Conversation(stateConversationInfo.conversationInfo.conversationType,
             stateConversationInfo.conversationInfo.target,
@@ -106,7 +107,7 @@ export default class Message {
         message.status = MessageStatus.Sending;
         message.timestamp = new Date().getTime();
         message.direction = 0;
-        message.messageId = MessageShardingUtil.generateId(); 
+        message.messageId = MessageShardingUtil.generateId();
         return message;
     }
 }

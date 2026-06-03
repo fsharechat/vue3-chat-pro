@@ -6,6 +6,8 @@ import { useUIStore } from '@/stores/useUIStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { useGroupStore } from '@/stores/useGroupStore'
 import MarkdownText from './MarkdownText.vue'
+import MessageConfig from '@/websocket/message/messageConfig'
+import BenzAMRRecorder from 'benz-amr-recorder'
 
 const props = defineProps<{
   message: ProtoMessage
@@ -28,9 +30,8 @@ const isSystemMsg = computed(() => props.message.content.type === 90)
 
 const notificationText = computed(() => {
   try {
-    const MessageConfig = require('@/websocket/message/messageConfig').default
-    const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content)
-    return mc.formatNotification?.() ?? mc.digest?.() ?? ''
+    const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
+    return mc?.formatNotification?.() ?? mc?.digest?.() ?? ''
   } catch { return '' }
 })
 
@@ -68,7 +69,6 @@ const thumbnailSrc = computed(() => {
 
 const audioInfo = computed(() => {
   try {
-    const MessageConfig = require('@/websocket/message/messageConfig').default
     const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content)
     return { duration: (mc as any).duration ?? 0, url: (mc as any).remotePath ?? '' }
   } catch { return { duration: 0, url: '' } }
@@ -76,7 +76,6 @@ const audioInfo = computed(() => {
 
 const fileInfo = computed(() => {
   try {
-    const MessageConfig = require('@/websocket/message/messageConfig').default
     const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
     const size = mc.size ? `${(mc.size / 1024).toFixed(1)} KB` : ''
     return { name: mc.name ?? '', size, url: mc.remotePath ?? '' }
@@ -120,7 +119,6 @@ function formatTime(ts: number) {
 let amrInstance: any = null
 function toggleAudio() {
   try {
-    const BenzAMRRecorder = require('benz-amr-recorder').default
     if (amrInstance) { amrInstance.stop(); amrInstance = null; return }
     amrInstance = new BenzAMRRecorder()
     amrInstance.initWithUrl(audioInfo.value.url).then(() => amrInstance.play())

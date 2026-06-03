@@ -15,6 +15,8 @@ import VideoCallModal from '@/components/chat/VideoCallModal.vue'
 import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import type { ProtoMessage } from '@/types'
+import LocalStore from '@/websocket/store/localstore'
+import RecallMessageNotification from '@/websocket/message/notification/recallMessageNotification'
 
 const uiStore = useUIStore()
 const msgStore = useMessageStore()
@@ -47,8 +49,6 @@ async function onContextMenuSelect(key: string) {
     try {
       const data = await webSocketClient.recallMessage(msg.messageUid)
       if (data?.code === SUCCESS_CODE && data.result === 200) {
-        const LocalStore = require('@/websocket/store/localstore').default
-        const RecallMessageNotification = require('@/websocket/message/notification/recallMessageNotification').default
         const recall = new RecallMessageNotification(LocalStore.getUserId(), msg.messageUid)
         msg.content = recall.encode()
       } else { message.error('非管理员只能撤回自己发送的消息') }
