@@ -36,6 +36,7 @@
     "@vue/test-utils": "^2.4.0",
     "@types/crypto-js": "^4.2.2",
     "@types/uuid": "^9.0.7",
-    "vfonts": "^0.0.3"
+    "vfonts": "^0.0.3",
+    "@types/node": "^20.0.0"
   }
 }
