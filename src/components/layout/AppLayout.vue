@@ -2,17 +2,20 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/useUIStore'
+import { useMessage } from 'naive-ui'
 import AppSidebar from './AppSidebar.vue'
 import GroupVideoCallModal from '@/components/group/GroupVideoCall.vue'
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const message = useMessage()
 
 function onVisibility() { uiStore.visibilityChange(document.visibilityState) }
 
 onMounted(() => {
   authStore.initData((isError, msg) => {
-    console.log(isError ? `[ERROR] ${msg}` : `[INFO] ${msg}`)
+    if (isError) message.error(msg)
+    else message.info(msg)
   })
   document.addEventListener('visibilitychange', onVisibility)
 })

@@ -195,6 +195,17 @@ export const useMessageStore = defineStore('message', () => {
     else fileDownloadStatus.value.push(status)
   }
 
+  function updateSendMessage(update: { messageId: string; messageContent: any }) {
+    for (const chat of messages.value) {
+      for (const msg of chat.protoMessages as any[]) {
+        if (msg.messageId === update.messageId) {
+          msg.content = update.messageContent.encode ? update.messageContent.encode() : update.messageContent
+          return
+        }
+      }
+    }
+  }
+
   watch(messages, val => LocalStore.saveMessages(val), { deep: true })
 
   return {
@@ -202,6 +213,6 @@ export const useMessageStore = defineStore('message', () => {
     selectedChat, currentMessages,
     addProtoMessage, preAddProtoMessage, addOldMessage, deleteMessage,
     updateMessageContent, updateProtoMessageUid, updateMessageStatus,
-    appendStreamingContent, setFileDownloadStatus,
+    appendStreamingContent, setFileDownloadStatus, updateSendMessage,
   }
 })

@@ -9,6 +9,7 @@ export const useGroupStore = defineStore('group', () => {
   const groupOperateState = ref(0)
   const groupMemberTracker = ref(0)
   const groupSendMessageUserMap = ref<Map<string, string[]>>(new Map())
+  const groupCallMembers = ref<{ uid: string; name: string }[]>([])
 
   const currentGroupMembers = computed(() => {
     const { useConversationStore } = require('@/stores/useConversationStore')
@@ -45,6 +46,7 @@ export const useGroupStore = defineStore('group', () => {
   return {
     groupInfoList, groupMemberMap, tempGroupMembers,
     groupOperateState, groupMemberTracker, groupSendMessageUserMap,
+    groupCallMembers,
     currentGroupMembers, currentGroupMemberCount,
     updateGroupInfos, updateTempGroupMember, addGroupSendUser,
   }
