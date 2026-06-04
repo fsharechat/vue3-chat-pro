@@ -1,9 +1,10 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { StateMessageReport, ProtoMessage } from '@/types'
 import { useConversationStore } from './useConversationStore'
 import { useGroupStore } from './useGroupStore'
 import { useAuthStore } from './useAuthStore'
+import LocalStore from '@/websocket/store/localstore'
 
 export const useUIStore = defineStore('ui', () => {
   const onlineStatus = ref(false)
@@ -113,9 +114,11 @@ export const useUIStore = defineStore('ui', () => {
   function setOnlineStatus(status: boolean) { onlineStatus.value = status }
   function setFirstLogin(val: boolean) { firstLogin.value = val }
   function visibilityChange(state: string) { visibilityState.value = state }
+  function playMsgNotify() { try { _notify?.player?.() } catch (e) {} }
 
   function updateUserInfos(infos: any[]) {
     const authStore = useAuthStore()
+    const convStore = useConversationStore()
     for (const info of infos) {
       if (info.uid === authStore.userId) {
         authStore.user.img = info.portrait
@@ -124,6 +127,15 @@ export const useUIStore = defineStore('ui', () => {
       const idx = userInfoList.value.findIndex((u: any) => u.uid === info.uid)
       if (idx !== -1) userInfoList.value.splice(idx, 1, info)
       else userInfoList.value.push(info)
+    }
+    // Apply name/portrait to single conversations that match
+    for (const sc of convStore.conversations) {
+      if (sc.conversationInfo.conversationType !== 0) continue
+      const user = infos.find((u: any) => u.uid === sc.conversationInfo.target)
+      if (user) {
+        sc.name = user.displayName
+        if (user.portrait) sc.img = user.portrait
+      }
     }
   }
 
@@ -156,6 +168,17 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
+  function reset() {
+    userInfoList.value = []
+    stateMessageReports.value = []
+    onlineStatus.value = false
+    showChatBox.value = false
+    showGroupInfo.value = false
+  }
+
+  watch(userInfoList, val => LocalStore.saveUserInfoList(val), { deep: true })
+  watch(stateMessageReports, val => LocalStore.setMessageReports(val), { deep: true })
+
   return {
     onlineStatus, firstLogin, appHeight, visibilityState,
     showChatBox, showAudioBox, showSearchFriendDialog, showCreateGroupDialog,
@@ -164,6 +187,6 @@ export const useUIStore = defineStore('ui', () => {
     emptyMessage, isWinMaxed, stateMessageReports, groupCallMembers,
     userInfoList, emojis, unreadTotalCount,
     initNotify, setVueSocket, setOnlineStatus, setFirstLogin, visibilityChange,
-    updateUserInfos, addMessageReport, uploadReport,
+    updateUserInfos, addMessageReport, uploadReport, playMsgNotify, reset,
   }
 })

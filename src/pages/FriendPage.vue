@@ -9,7 +9,6 @@ import SearchBar from '@/components/common/SearchBar.vue'
 import FriendList from '@/components/friend/FriendList.vue'
 import FriendInfo from '@/components/friend/FriendInfo.vue'
 import FriendRequestPanel from '@/components/friend/FriendRequest.vue'
-import SearchFriendDialog from '@/components/friend/SearchFriendDialog.vue'
 import ProtoConversationInfo from '@/websocket/model/protoConversationInfo'
 import UnreadCount from '@/websocket/model/unReadCount'
 
@@ -56,7 +55,6 @@ function sendMessage() {
       <FriendInfo v-else-if="selectedFriend" :friend="selectedFriend" @send-message="sendMessage" />
       <div v-else class="empty">选择一个好友查看详情</div>
     </main>
-    <SearchFriendDialog v-if="showSearchFriendDialog" />
   </div>
 </template>
 

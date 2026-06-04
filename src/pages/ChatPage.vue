@@ -9,7 +9,6 @@ import ConversationList from '@/components/conversation/ConversationList.vue'
 import MessageList from '@/components/chat/MessageList.vue'
 import MessageInput from '@/components/chat/MessageInput.vue'
 import RelayMessage from '@/components/common/RelayMessage.vue'
-import CreateGroup from '@/components/common/CreateGroup.vue'
 import VoiceCallModal from '@/components/chat/VoiceCallModal.vue'
 import VideoCallModal from '@/components/chat/VideoCallModal.vue'
 import webSocketClient from '@/websocket/websocketcli'
@@ -22,7 +21,7 @@ const uiStore = useUIStore()
 const msgStore = useMessageStore()
 const convStore = useConversationStore()
 const message = useMessage()
-const { showRelayMessageDialog, showCreateGroupDialog, showChatBox, showAudioBox } = storeToRefs(uiStore)
+const { showRelayMessageDialog, showChatBox, showAudioBox } = storeToRefs(uiStore)
 
 const contextMenuVisible = ref(false)
 const contextMenuX = ref(0)
@@ -96,7 +95,6 @@ async function onContextMenuSelect(key: string) {
     />
 
     <RelayMessage v-if="showRelayMessageDialog" />
-    <CreateGroup v-if="showCreateGroupDialog" />
     <VideoCallModal v-if="showChatBox" />
     <VoiceCallModal v-if="showAudioBox" />
   </div>

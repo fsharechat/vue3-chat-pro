@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { StateConversationInfo } from '@/types'
 import LocalStore from '@/websocket/store/localstore'
+import webSocketClient from '@/websocket/websocketcli'
 
 export const useConversationStore = defineStore('conversation', () => {
   const conversations = ref<StateConversationInfo[]>([])
@@ -64,6 +65,9 @@ export const useConversationStore = defineStore('conversation', () => {
         conversationInfo: protoConversationInfo
       }
       conversations.value.unshift(updateStateConversationInfo)
+      if (protoConversationInfo.conversationType === 1) {
+        webSocketClient.getGroupInfo(protoConversationInfo.target, false)
+      }
     }
 
     updateConverstationOrder()
@@ -121,6 +125,33 @@ export const useConversationStore = defineStore('conversation', () => {
     conversations.value = [...top, ...rest]
   }
 
+  // Called after initial message pull to fetch portraits for group convs missing them
+  function syncGroupInfos() {
+    const groupTargets = conversations.value
+      .filter(c => c.conversationInfo.conversationType === 1 && !c.img)
+      .map(c => c.conversationInfo.target)
+    for (const target of groupTargets) {
+      webSocketClient.getGroupInfo(target, false)
+    }
+  }
+
+  // Called after initial message pull to fetch user info for single convs missing name/portrait
+  function syncUserInfos() {
+    const userTargets = conversations.value
+      .filter(c => c.conversationInfo.conversationType === 0 && !c.img)
+      .map(c => c.conversationInfo.target)
+    if (userTargets.length > 0) {
+      webSocketClient.getUserInfos(userTargets)
+    }
+  }
+
+  function reset() {
+    conversations.value = []
+    selectTarget.value = ''
+    searchText.value = ''
+    isLoadRemoteMessage.value = false
+  }
+
   watch(conversations, val => LocalStore.saveConverSations(val), { deep: true })
   watch(selectTarget, val => LocalStore.setSelectTarget(val))
 
@@ -130,6 +161,7 @@ export const useConversationStore = defineStore('conversation', () => {
     selectConversation, clearUnreadStatus, updateConversationInfo,
     updateConversationIntro, topConversation, unTopConversation,
     silentConversation, unSilentConversation, deleteConversation,
-    clearConversationMessages, updateConverstationOrder,
+    clearConversationMessages, updateConverstationOrder, syncGroupInfos, syncUserInfos,
+    reset,
   }
 })

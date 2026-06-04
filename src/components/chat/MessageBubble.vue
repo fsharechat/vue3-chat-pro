@@ -7,6 +7,7 @@ import { useConversationStore } from '@/stores/useConversationStore'
 import { useGroupStore } from '@/stores/useGroupStore'
 import MarkdownText from './MarkdownText.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import LocationMessage from './LocationMessage.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
 import BenzAMRRecorder from 'benz-amr-recorder'
 
@@ -14,6 +15,8 @@ const props = defineProps<{
   message: ProtoMessage
   prevMessage?: ProtoMessage
 }>()
+
+const emit = defineEmits<{ (e: 'contextmenu', event: MouseEvent): void }>()
 
 const uiStore = useUIStore()
 const convStore = useConversationStore()
@@ -26,10 +29,12 @@ const isSelf = computed(() => props.message.direction === 0)
 
 const isNotification = computed(() => props.message.content.type >= 80 && props.message.content.type <= 117)
 const isRecallNotification = computed(() => props.message.content.type === 84)
-const isGroupNotification = computed(() => props.message.content.type >= 80 && props.message.content.type < 84)
+const isGroupNotification = computed(() => isNotification.value && !isRecallNotification.value && !isSystemMsg.value)
 const isSystemMsg = computed(() => props.message.content.type === 90)
 
 const notificationText = computed(() => {
+  // Explicitly depend on userInfoList so the text re-resolves when user info is fetched
+  void userInfoList.value
   try {
     const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
     return mc?.formatNotification?.() ?? mc?.digest?.() ?? ''
@@ -57,6 +62,22 @@ const isImage = computed(() => props.message.content.type === 3)
 const isFile = computed(() => props.message.content.type === 5)
 const isVideo = computed(() => props.message.content.type === 6)
 const isLocation = computed(() => props.message.content.type === 4)
+const locationData = computed(() => {
+  if (!isLocation.value) return null
+  try {
+    const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
+    return { title: mc.title, thumbnail: mc.thumbnail, lat: mc.lat, long: mc.long }
+  } catch { return null }
+})
+const isVoip = computed(() => props.message.content.type >= 400)
+
+const voipText = computed(() => {
+  if (!isVoip.value) return ''
+  try {
+    const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
+    return mc?.digest?.() ?? '[语音通话]'
+  } catch { return '[语音通话]' }
+})
 
 const textContent = computed(() => {
   if ((props.message as any).streaming) return props.message.content.searchableContent ?? ''
@@ -137,7 +158,7 @@ function toggleAudio() {
     <span>{{ isSystemMsg ? (message.content.content ?? '') : notificationText }}</span>
   </div>
 
-  <div v-else-if="!isNotification" class="message-row" :class="{ self: isSelf }">
+  <div v-else-if="!isNotification" class="message-row" :class="{ self: isSelf }" @contextmenu.prevent="emit('contextmenu', $event)">
     <UserAvatar :src="avatarSrc" :name="senderName" :size="34" radius="var(--radius-sm)" />
     <div class="bubble-wrap">
       <div v-if="!isSingleConversation && !isSelf" class="sender-name">{{ senderName }}</div>
@@ -171,8 +192,18 @@ function toggleAudio() {
             :src="message.content.remoteMediaUrl"
             :poster="thumbnailSrc" controls width="250" style="border-radius:4px;max-height:330px"
           ></video>
-          <div v-else-if="isLocation" class="location-msg">
-            <span>📍 位置消息</span>
+          <LocationMessage
+            v-else-if="isLocation && locationData"
+            :title="locationData.title"
+            :thumbnail="locationData.thumbnail"
+            :lat="locationData.lat"
+            :long="locationData.long"
+          />
+          <div v-else-if="isVoip" class="voip-msg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.64 3.4 2 2 0 0 1 3.6 1.23h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>{{ voipText }}</span>
           </div>
           <span v-else class="unknown-msg">[不支持的消息类型]</span>
         </div>
@@ -186,16 +217,7 @@ function toggleAudio() {
 .time-divider {
   text-align: center;
   margin: 16px 0 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 0 20px;
-}
-.time-divider::before, .time-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
 }
 .time-divider span {
   font-family: var(--font-mono);
@@ -224,7 +246,7 @@ function toggleAudio() {
 .message-row {
   display: flex;
   align-items: flex-start;
-  padding: 4px 20px;
+  padding: 2px 20px;
   gap: 10px;
   transition: background var(--dur-fast);
 }
@@ -251,14 +273,14 @@ function toggleAudio() {
   padding-left: 2px;
 }
 .bubble-meta { display: flex; align-items: flex-end; gap: 6px; }
-.bubble-meta.self { flex-direction: row-reverse; }
+.bubble-meta.self { justify-content: flex-end; }
 
 /* Read status */
 .read-status {
   font-family: var(--font-mono);
   font-size: 10px;
   white-space: nowrap;
-  padding-bottom: 4px;
+  flex-shrink: 0;
 }
 .read     { color: var(--text-muted); }
 .delivered{ color: var(--text-muted); }
@@ -283,6 +305,12 @@ function toggleAudio() {
   background: var(--bg-bubble-out);
   color: #fff;
   border-radius: var(--radius-lg) var(--radius-sm) var(--radius-lg) var(--radius-lg);
+}
+.bubble-self :deep(a) {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
 }
 
 /* Audio */
@@ -321,6 +349,7 @@ function toggleAudio() {
 .file-download::after { content: '↓'; font-size: 14px; font-weight: 600; }
 
 /* Location / Unknown */
-.location-msg { padding: 2px 0; cursor: pointer; }
+.voip-msg { display: flex; align-items: center; gap: 8px; min-width: 120px; padding: 2px 0; }
+.voip-msg span { font-size: 13px; }
 .unknown-msg { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
 </style>

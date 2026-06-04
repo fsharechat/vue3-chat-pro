@@ -1,18 +1,55 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useConversationStore } from '@/stores/useConversationStore'
+import type { StateConversationInfo } from '@/types'
 import SearchBar from '@/components/common/SearchBar.vue'
 import ConversationItem from './ConversationItem.vue'
 
 const convStore = useConversationStore()
 const { searchedConversationList, selectTarget } = storeToRefs(convStore)
+
+const menuVisible = ref(false)
+const menuX = ref(0)
+const menuY = ref(0)
+const menuConv = ref<StateConversationInfo | null>(null)
+
+const menuOptions = computed(() => {
+  if (!menuConv.value) return []
+  const isTop = menuConv.value.conversationInfo.isTop
+  const isSilent = menuConv.value.conversationInfo.isSilent
+  return [
+    { label: isTop ? '取消置顶' : '置顶聊天', key: 'top' },
+    { label: isSilent ? '取消免打扰' : '消息免打扰', key: 'silent' },
+    { label: '删除会话', key: 'delete' },
+  ]
+})
+
+function onConvContextMenu(e: MouseEvent, conv: StateConversationInfo) {
+  menuX.value = e.clientX
+  menuY.value = e.clientY
+  menuConv.value = conv
+  menuVisible.value = true
+}
+
+function onMenuSelect(key: string) {
+  menuVisible.value = false
+  const target = menuConv.value?.conversationInfo.target
+  if (!target) return
+  if (key === 'top') {
+    menuConv.value!.conversationInfo.isTop ? convStore.unTopConversation(target) : convStore.topConversation(target)
+  } else if (key === 'silent') {
+    menuConv.value!.conversationInfo.isSilent ? convStore.unSilentConversation(target) : convStore.silentConversation(target)
+  } else if (key === 'delete') {
+    convStore.deleteConversation(target)
+  }
+}
 </script>
 
 <template>
   <div class="conv-list-panel">
     <div class="panel-header">
       <span class="panel-title">消息</span>
-      <span v-if="searchedConversationList.length" class="count">{{ searchedConversationList.length }}</span>
     </div>
     <SearchBar />
     <div class="list-scroll">
@@ -22,8 +59,18 @@ const { searchedConversationList, selectTarget } = storeToRefs(convStore)
           :key="conv.conversationInfo.target"
           :conversation="conv"
           :is-active="conv.conversationInfo.target === selectTarget"
+          @context-menu="onConvContextMenu"
         />
       </TransitionGroup>
+
+      <n-dropdown
+        :show="menuVisible"
+        :options="menuOptions"
+        :x="menuX" :y="menuY"
+        placement="bottom-start"
+        @select="onMenuSelect"
+        @clickoutside="menuVisible = false"
+      />
       <div v-if="searchedConversationList.length === 0" class="empty-state">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 8px">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -55,14 +102,6 @@ const { searchedConversationList, selectTarget } = storeToRefs(convStore)
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.2px;
-}
-.count {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  background: var(--bg-elevated);
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
 }
 .list-scroll {
   flex: 1;

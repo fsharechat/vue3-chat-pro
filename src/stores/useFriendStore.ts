@@ -105,7 +105,23 @@ export const useFriendStore = defineStore('friend', () => {
 
   function handleFriendRequest(value: { targetUid: string }) {
     const r = friendRequests.value.find(f => f.from === value.targetUid)
-    if (r) r.status = 1
+    if (r && r.status === 0) {
+      r.status = 1
+      if (newFriendRequestCount.value > 0) newFriendRequestCount.value--
+    }
+  }
+
+  function reset() {
+    friendlist.value = [{
+      id: 0, wxid: 'new', initial: '新的朋友', img: 'images/newfriend.jpg',
+      signature: '', nickname: '新的朋友', sex: 0, remark: '新的朋友', area: '', mobile: ''
+    }]
+    friendIds.value = []
+    friendDatas.value = []
+    friendRequests.value = []
+    newFriendRequestCount.value = 0
+    searchUsers.value = []
+    selectFriendId.value = 0
   }
 
   return {
@@ -113,5 +129,6 @@ export const useFriendStore = defineStore('friend', () => {
     searchUsers, selectFriendId,
     searchedFriendlist, onlyFriendlist, selectedFriend,
     updateFriendList, updateFriendIds, updateFriendRequest, updateSearchUser, handleFriendRequest,
+    reset,
   }
 })

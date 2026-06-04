@@ -36,7 +36,9 @@ export default class ReceiveMessageHandler extends AbstractMessageHandler {
           }
           ChatManager.onReceiveMessage(protoMessage);
         } 
-        this.vueWebsocket.sendAction('changetFirstLogin',false);     
+        this.vueWebsocket.sendAction('changetFirstLogin',false);
+        this.vueWebsocket.sendAction('syncGroupInfos', null);
+        this.vueWebsocket.sendAction('syncUserInfos', null);
       }
 
       addProtoMessage(protoMessage){

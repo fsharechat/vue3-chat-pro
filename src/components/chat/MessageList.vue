@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 import { useMessageStore } from '@/stores/useMessageStore'
@@ -22,27 +22,53 @@ const uiStore = useUIStore()
 const groupStore = useGroupStore()
 const message = useMessage()
 
-const { selectedChat, streamingTokenCount } = storeToRefs(msgStore)
-const { selectTarget, isSingleConversation, isLoadRemoteMessage } = storeToRefs(convStore)
+const { selectedChat, streamingTokenCount, scrollBottomTrigger, incomingMsgTrigger } = storeToRefs(msgStore)
+const { selectTarget, isSingleConversation, isLoadRemoteMessage, conversations } = storeToRefs(convStore)
 const { showGroupInfo } = storeToRefs(uiStore)
+
+const chatTitle = computed(() => {
+  const conv = conversations.value.find(c => c.conversationInfo.target === selectTarget.value)
+  return conv?.name || selectTarget.value
+})
 
 const listRef = ref<HTMLElement>()
 const isLoading = ref(false)
+const isAtBottom = ref(true)
+const unreadBadge = ref(0)
 let prevScrollHeight = 0
 
-function scrollToBottom() {
-  nextTick(() => { if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight })
+function checkAtBottom(el: HTMLElement) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 60
 }
 
-watch(() => msgStore.currentMessages.length, () => {
-  if (!convStore.isLoadRemoteMessage) scrollToBottom()
-  else nextTick(() => { if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight - prevScrollHeight })
+function scrollToBottom() {
+  nextTick(() => requestAnimationFrame(() => {
+    if (listRef.value) {
+      listRef.value.scrollTop = listRef.value.scrollHeight
+      isAtBottom.value = true
+      unreadBadge.value = 0
+    }
+  }))
+}
+
+watch(scrollBottomTrigger, () => scrollToBottom())
+watch(streamingTokenCount, () => { if (isAtBottom.value) scrollToBottom() })
+watch(selectTarget, () => { convStore.isLoadRemoteMessage = false; unreadBadge.value = 0; scrollToBottom() })
+// 收到新消息：在底部自动滚，否则徽标 +1
+watch(incomingMsgTrigger, () => {
+  if (isAtBottom.value) scrollToBottom()
+  else unreadBadge.value++
 })
-watch(streamingTokenCount, () => scrollToBottom())
-watch(selectTarget, () => { convStore.isLoadRemoteMessage = false; scrollToBottom() })
+// 加载历史消息时恢复滚动位置
+watch(() => msgStore.currentMessages.length, () => {
+  if (convStore.isLoadRemoteMessage)
+    nextTick(() => { if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight - prevScrollHeight })
+})
 
 async function onScroll(e: Event) {
   const el = e.target as HTMLElement
+  isAtBottom.value = checkAtBottom(el)
+  if (isAtBottom.value) unreadBadge.value = 0
   if (el.scrollTop > 0 || isLoading.value) return
   isLoading.value = true
   prevScrollHeight = el.scrollHeight
@@ -62,14 +88,22 @@ async function onScroll(e: Event) {
   } catch { } finally { isLoading.value = false }
 }
 
-async function toggleGroupInfo() {
+async function toggleInfoPanel() {
   if (showGroupInfo.value) { showGroupInfo.value = false; return }
+  if (isSingleConversation.value) {
+    showGroupInfo.value = true
+    return
+  }
   const data = await (webSocketClient as any)._instance?.getGroupMember(selectedChat.value.target)
   if (data?.code === SUCCESS_CODE) {
     if (!data.result?.length) { message.error('该群组已解散'); convStore.deleteConversation(selectedChat.value.target); return }
     const isMember = data.result.some((m: any) => m.memberId === LocalStore.getUserId())
     if (!isMember) { message.error('您不是群组成员'); convStore.deleteConversation(selectedChat.value.target); return }
     groupStore.groupMemberMap.set(selectedChat.value.target, data.result)
+    // Ensure group info (including owner) is loaded
+    if (!groupStore.groupInfoList.find((g: any) => g.target === selectedChat.value.target)) {
+      webSocketClient.getGroupInfo(selectedChat.value.target, false)
+    }
     showGroupInfo.value = true
   }
 }
@@ -80,19 +114,24 @@ async function toggleGroupInfo() {
     <!-- Header -->
     <div class="msg-header">
       <div class="header-left">
-        <span class="chat-name">{{ selectedChat.name || selectedChat.target }}</span>
+        <span class="chat-name">{{ chatTitle }}</span>
         <span v-if="!isSingleConversation" class="chat-type-tag">群组</span>
       </div>
       <div class="header-actions">
-        <button class="action-btn" title="成员信息" @click="isSingleConversation ? (showGroupInfo = !showGroupInfo) : toggleGroupInfo()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="action-btn" :title="isSingleConversation ? '用户信息' : '群组成员'" @click="toggleInfoPanel">
+          <svg v-if="isSingleConversation" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
         </button>
       </div>
-      <GroupInfo v-if="showGroupInfo && !isSingleConversation" :target-id="selectedChat.target" @close="showGroupInfo = false" />
     </div>
+
+    <!-- Info panel: positioned absolute over messages area -->
+    <GroupInfo v-if="showGroupInfo" :target-id="selectedChat.target" :is-single="isSingleConversation" @close="showGroupInfo = false" />
 
     <!-- Messages -->
     <div class="messages-scroll" ref="listRef" @scroll="onScroll">
@@ -106,9 +145,19 @@ async function toggleGroupInfo() {
         :key="(msg as any).messageId"
         :message="msg as any"
         :prev-message="idx > 0 ? (selectedChat.protoMessages[idx - 1] as any) : undefined"
-        @contextmenu.prevent="(e: MouseEvent) => emit('context-menu', e, msg)"
+        @contextmenu="(e: MouseEvent) => emit('context-menu', e, msg)"
       />
     </div>
+
+    <!-- 滚动到底部徽标 -->
+    <Transition name="badge-fade">
+      <button v-if="!isAtBottom" class="scroll-bottom-btn" @click="scrollToBottom">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+        <span v-if="unreadBadge > 0" class="scroll-badge">{{ unreadBadge > 99 ? '99+' : unreadBadge }}</span>
+      </button>
+    </Transition>
   </div>
 </template>
 
@@ -184,4 +233,45 @@ async function toggleGroupInfo() {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
+
+/* 滚动到底部按钮 */
+.scroll-bottom-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-float);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-normal), transform var(--dur-fast);
+}
+.scroll-bottom-btn:hover { background: var(--bg-elevated); transform: translateY(-2px); }
+
+.scroll-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.badge-fade-enter-active, .badge-fade-leave-active { transition: opacity var(--dur-normal), transform var(--dur-normal); }
+.badge-fade-enter-from, .badge-fade-leave-to { opacity: 0; transform: translateY(8px); }
 </style>

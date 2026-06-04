@@ -3,12 +3,15 @@ import { defineStore } from 'pinia'
 import { CONVERSATION_MAX_MESSAGE_SIZE } from '@/constant'
 import type { StateChatMessage, ProtoMessage } from '@/types'
 import { useConversationStore } from './useConversationStore'
+import { useUIStore } from './useUIStore'
 import LocalStore from '@/websocket/store/localstore'
 import MessageStatus from '@/websocket/message/messageStatus'
 import ProtoConversationInfo from '@/websocket/model/protoConversationInfo'
 import UnreadCount from '@/websocket/model/unReadCount'
 import MessageConfig from '@/websocket/message/messageConfig'
 import RecallMessageNotification from '@/websocket/message/notification/recallMessageNotification'
+import MessageContentType from '@/websocket/message/messageContentType'
+import webSocketClient from '@/websocket/websocketcli'
 
 export const useMessageStore = defineStore('message', () => {
   const messages = ref<StateChatMessage[]>([])
@@ -16,6 +19,11 @@ export const useMessageStore = defineStore('message', () => {
   const streamingMap = ref<Record<string, { target: string; virtualId: string }>>({})
   const streamingTokenCount = ref(0)
   const pendingReplacementTargets = ref<string[]>([])
+  const scrollBottomTrigger = ref(0)
+  function triggerScrollBottom() { scrollBottomTrigger.value++ }
+
+  const incomingMsgTrigger = ref(0)
+  function triggerIncoming() { incomingMsgTrigger.value++ }
 
   const selectedChat = computed(() => {
     const convStore = useConversationStore()
@@ -56,6 +64,10 @@ export const useMessageStore = defineStore('message', () => {
             chat.protoMessages.splice(0, chat.protoMessages.length - CONVERSATION_MAX_MESSAGE_SIZE)
           }
           chat.protoMessages.push(protoMessage)
+          // 收到新消息（direction=1）且是当前会话，通知 MessageList 更新徽标
+          if (protoMessage.direction === 1 && protoMessage.target === convStore.selectTarget) {
+            triggerIncoming()
+          }
         } else {
           if (existing.messageUid === '0') {
             existing.messageUid = protoMessage.messageUid
@@ -79,6 +91,29 @@ export const useMessageStore = defineStore('message', () => {
       pci.lastMessage = protoMessage
       pci.unreadCount = new UnreadCount()
       convStore.updateConversationInfo(pci)
+
+      // 只有初始拉取完成后（firstLogin=false）才累加未读数，避免历史消息全部计入未读
+      const uiStore = useUIStore()
+      if (!uiStore.firstLogin && protoMessage.direction === 1) {
+        if (protoMessage.target !== convStore.selectTarget) {
+          uiStore.playMsgNotify()
+          const sc = convStore.conversations.find(c => c.conversationInfo.target === protoMessage.target)
+          if (sc) {
+            if (!sc.conversationInfo.unreadCount) sc.conversationInfo.unreadCount = new UnreadCount()
+            sc.conversationInfo.unreadCount.unread++
+          }
+        }
+      }
+    }
+
+    // Auto-delete conversation when group is dismissed
+    if (protoMessage.content?.type === MessageContentType.DismissGroup_Notification) {
+      setTimeout(() => convStore.deleteConversation(protoMessage.target), 500)
+    }
+
+    // Re-fetch group info when name changes so conversation list + chat title sync
+    if (protoMessage.content?.type === MessageContentType.ChangeGroupName_Notification) {
+      webSocketClient.getGroupInfo(protoMessage.target, false)
     }
   }
 
@@ -203,6 +238,14 @@ export const useMessageStore = defineStore('message', () => {
     }
   }
 
+  function reset() {
+    messages.value = []
+    fileDownloadStatus.value = []
+    streamingMap.value = {}
+    streamingTokenCount.value = 0
+    pendingReplacementTargets.value = []
+  }
+
   watch(messages, val => LocalStore.saveMessages(val), { deep: true })
 
   return {
@@ -211,5 +254,8 @@ export const useMessageStore = defineStore('message', () => {
     addProtoMessage, preAddProtoMessage, addOldMessage, deleteMessage,
     updateMessageContent, updateProtoMessageUid, updateMessageStatus,
     appendStreamingContent, setFileDownloadStatus, updateSendMessage,
+    scrollBottomTrigger, triggerScrollBottom,
+    incomingMsgTrigger, triggerIncoming,
+    reset,
   }
 })

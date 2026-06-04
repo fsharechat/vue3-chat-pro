@@ -11,6 +11,11 @@ import CallByeMessageContent from "./message/callByeMessageContent";
 import SendMessage from "../websocket/message/sendMessage";
 import CallState from "./callState";
 import CallEndReason from "./callEndReason";
+import webSocketClient from "../websocket/websocketcli";
+import Message from "../websocket/message/message";
+import ProtoMessage from "../websocket/message/protomessage";
+import FscMessage from "../websocket/message/FscMessage";
+import { useMessageStore } from "../stores/useMessageStore";
 
 export default class VoipClient extends OnReceiverMessageListener{
   
@@ -94,7 +99,18 @@ export default class VoipClient extends OnReceiverMessageListener{
     }
 
     offerMessage(target,messageConent){
-        this.store.dispatch('sendMessage', new SendMessage(target,messageConent));
+        const msg = new SendMessage(target, messageConent);
+        try {
+            const m = Message.conert2Message(msg);
+            const protoMsg = ProtoMessage.convertToProtoMessage(m);
+            const fscMsg = FscMessage.convertToFscMessage(m);
+            if (MessageConfig.isDisplayableMessage(protoMsg)) {
+                useMessageStore().preAddProtoMessage(protoMsg);
+            }
+            webSocketClient._instance?.sendMessage(fscMsg);
+        } catch(e) {
+            webSocketClient._instance?.sendMessage(msg);
+        }
     }
 
     offerMessageByType(type){
@@ -445,17 +461,23 @@ export default class VoipClient extends OnReceiverMessageListener{
             // element, then stopping each of the getUserMedia() tracks
             // on it.
 
-            if(!this.currentSession.audioOnly){
-              var localVideo = document.getElementById("wxCallLocalVideo");
-              if (localVideo.srcObject) {
-                  localVideo.pause();
-                  localVideo.srcObject.getTracks().forEach(track => {
-                  track.stop();
-                  });
-              }
-            }       
-            // Close the peer connection
-        
+            // Stop all local tracks (audio + video)
+            if (this.webcamStream) {
+                this.webcamStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Clear local video element
+            if (!this.currentSession?.audioOnly) {
+                const localVideo = document.getElementById("wxCallLocalVideo");
+                if (localVideo?.srcObject) { localVideo.pause(); localVideo.srcObject = null; }
+            }
+
+            // Clear remote media elements
+            const remoteAudio = document.getElementById("wxCallRemoteAudio");
+            if (remoteAudio?.srcObject) { remoteAudio.pause(); remoteAudio.srcObject = null; }
+            const remoteVideo = document.getElementById("wxCallRemoteVideo");
+            if (remoteVideo?.srcObject) { remoteVideo.pause(); remoteVideo.srcObject = null; }
+
             this.myPeerConnection.close();
             this.myPeerConnection = null;
             this.webcamStream = null;

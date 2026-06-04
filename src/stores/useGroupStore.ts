@@ -1,7 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { GroupInfo, GroupMember } from '@/types'
 import { useConversationStore } from './useConversationStore'
+import LocalStore from '@/websocket/store/localstore'
 
 export const useGroupStore = defineStore('group', () => {
   const groupInfoList = ref<GroupInfo[]>([])
@@ -41,11 +42,24 @@ export const useGroupStore = defineStore('group', () => {
     groupSendMessageUserMap.value.set(info.target, list)
   }
 
+  function reset() {
+    groupInfoList.value = []
+    groupMemberMap.value = new Map()
+    tempGroupMembers.value = []
+    groupOperateState.value = 0
+    groupMemberTracker.value = 0
+    groupSendMessageUserMap.value = new Map()
+    groupCallMembers.value = []
+  }
+
+  watch(groupInfoList, val => LocalStore.setGroupInfos(val), { deep: true })
+
   return {
     groupInfoList, groupMemberMap, tempGroupMembers,
     groupOperateState, groupMemberTracker, groupSendMessageUserMap,
     groupCallMembers,
     currentGroupMembers, currentGroupMemberCount,
     updateGroupInfos, updateTempGroupMember, addGroupSendUser,
+    reset,
   }
 })

@@ -1,3 +1,4 @@
+declare const __APP_VERSION__: string
 declare module 'kurento-utils'
 declare module 'benz-amr-recorder'
 declare module '@wcjiang/notify'

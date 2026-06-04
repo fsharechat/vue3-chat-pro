@@ -16,7 +16,7 @@ export default class LocalStore {
 
     static getConversations(){
         let vaule = localStorage.getItem("coversations");
-        return JSON.parse(vaule);
+        return vaule ? JSON.parse(vaule) : null;
     }
 
     static getLastMessageSeq(){
@@ -45,7 +45,7 @@ export default class LocalStore {
 
     static getMessages(){
         let value = localStorage.getItem("messages");
-        return JSON.parse(value);
+        return value ? JSON.parse(value) : null;
     }
 
     static saveUserInfoList(value){
@@ -54,7 +54,7 @@ export default class LocalStore {
 
     static getUserInfoList(){
         let value = localStorage.getItem("user_infos_list");
-        return JSON.parse(value);
+        return value ? JSON.parse(value) : null;
     }
 
     /**
@@ -137,7 +137,7 @@ export default class LocalStore {
 
     static getGroupInfos(){
         let value = localStorage.getItem("group_infos")
-        return JSON.parse(value)
+        return value ? JSON.parse(value) : null;
     }
 
     static clearLocalStore(){

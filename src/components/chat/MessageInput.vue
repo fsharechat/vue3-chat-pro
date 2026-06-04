@@ -6,6 +6,7 @@ import { useMessageStore } from '@/stores/useMessageStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useGroupStore } from '@/stores/useGroupStore'
+import { useCallStore } from '@/stores/useCallStore'
 import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import EmojiPicker from './EmojiPicker.vue'
@@ -24,6 +25,7 @@ const msgStore = useMessageStore()
 const convStore = useConversationStore()
 const uiStore = useUIStore()
 const groupStore = useGroupStore()
+const callStore = useCallStore()
 const message = useMessage()
 
 const { emojis } = storeToRefs(uiStore)
@@ -44,6 +46,7 @@ function buildAndSend(mc: any) {
     const fscMsg = FscMessage.convertToFscMessage(m)
     msgStore.preAddProtoMessage(protoMsg as any)
     ;(webSocketClient as any)._instance?.sendMessage(fscMsg)
+    msgStore.triggerScrollBottom()
     return protoMsg
   } catch (e) {
     console.error('Send failed', e)
@@ -142,12 +145,12 @@ async function onFileSelected(e: Event) {
 
 function startAudioCall() {
   if (!convStore.isSingleConversation) return
-  uiStore.showAudioBox = true
+  callStore.startCall(convStore.selectTarget, true)
 }
 
 function startVideoCall() {
   if (convStore.isSingleConversation) {
-    uiStore.showChatBox = true
+    callStore.startCall(convStore.selectTarget, false)
   } else {
     uiStore.showCreateGroupDialog = true
     groupStore.groupOperateState = 4
@@ -178,7 +181,7 @@ function onPaste(e: ClipboardEvent) {
             </svg>
           </button>
         </template>
-        <EmojiPicker :emojis="emojis ?? []" @pick="pickEmoji" />
+        <EmojiPicker @pick="pickEmoji" />
       </n-popover>
 
       <label class="tool-btn" title="发送图片">

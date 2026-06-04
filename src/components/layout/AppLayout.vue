@@ -5,6 +5,8 @@ import { useUIStore } from '@/stores/useUIStore'
 import { useMessage } from 'naive-ui'
 import AppSidebar from './AppSidebar.vue'
 import GroupVideoCallModal from '@/components/group/GroupVideoCall.vue'
+import SearchFriendDialog from '@/components/friend/SearchFriendDialog.vue'
+import CreateGroup from '@/components/common/CreateGroup.vue'
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
@@ -30,6 +32,8 @@ onUnmounted(() => document.removeEventListener('visibilitychange', onVisibility)
       <router-view />
     </div>
     <GroupVideoCallModal v-if="uiStore.showGroupCallVideoDialog" />
+    <SearchFriendDialog v-if="uiStore.showSearchFriendDialog" />
+    <CreateGroup v-if="uiStore.showCreateGroupDialog" />
   </div>
 </template>
 

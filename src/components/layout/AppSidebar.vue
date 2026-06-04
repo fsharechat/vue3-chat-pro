@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useDialog } from 'naive-ui'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useThemeStore } from '@/stores/useThemeStore'
 import { useConversationStore } from '@/stores/useConversationStore'
+import { useFriendStore } from '@/stores/useFriendStore'
 import PersonalCard from '@/components/common/PersonalCard.vue'
 import AboutDialog from '@/components/common/AboutDialog.vue'
 import AddTip from '@/components/common/AddTip.vue'
@@ -17,17 +19,32 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const themeStore = useThemeStore()
 const convStore = useConversationStore()
+const friendStore = useFriendStore()
 const { user, userId } = storeToRefs(authStore)
 const { onlineStatus, unreadTotalCount } = storeToRefs(uiStore)
+const { newFriendRequestCount } = storeToRefs(friendStore)
 const { isDark } = storeToRefs(themeStore)
 
+const dialog = useDialog()
 const showPersonalCard = ref(false)
 const showAboutDialog = ref(false)
 const showAddTip = ref(false)
 
 function goConversation() { convStore.searchText = ''; router.push('/conversation') }
 function goFriend() { convStore.searchText = ''; router.push('/friend') }
-function loginOut() { authStore.loginOut() }
+
+function loginOut() {
+  dialog.warning({
+    title: '退出登录',
+    content: '确认退出当前账号吗？',
+    positiveText: '退出',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      authStore.loginOut()
+      router.push('/login')
+    }
+  })
+}
 </script>
 
 <template>
@@ -62,6 +79,7 @@ function loginOut() { authStore.loginOut() }
         title="好友"
         @click="goFriend"
       >
+        <span v-if="newFriendRequestCount > 0" class="dot-badge"></span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -202,6 +220,17 @@ function loginOut() { authStore.loginOut() }
 .nav-btn.active::before {
   transform: translateY(-50%) scaleY(1);
 }
+.dot-badge {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-surface);
+}
+
 .badge {
   position: absolute;
   top: 6px;

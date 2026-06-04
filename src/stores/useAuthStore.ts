@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
       const map: Record<string, () => void> = {
         setOnlineStatus:          () => uiStore.setOnlineStatus(data),
         changetFirstLogin:        () => uiStore.setFirstLogin(data),
+        changeEmptyMessageState:  () => { uiStore.emptyMessage = data },
         updateFriendList:         () => friendStore.updateFriendList(data),
         updateFriendIds:          () => friendStore.updateFriendIds(data),
         updateFriendRequest:      () => friendStore.updateFriendRequest(data),
@@ -48,6 +49,8 @@ export const useAuthStore = defineStore('auth', () => {
         addGroupSendUser:         () => groupStore.addGroupSendUser(data),
         uploadReport:             () => uiStore.uploadReport(data, vueSocket),
         appendStreamingContent:   () => messageStore.appendStreamingContent(data),
+        syncGroupInfos:           () => conversationStore.syncGroupInfos(),
+        syncUserInfos:            () => conversationStore.syncUserInfos(),
       }
       const handler = map[action]
       if (handler) handler()
@@ -57,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     vueSocket = new VueWebSocket(errorHandler, dispatcher)
     webSocketClient.setInstance(vueSocket)
 
+    uiStore.setFirstLogin(true)
     uiStore.initNotify()
 
     const convs = LocalStore.getConversations()
@@ -70,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     const reports = LocalStore.getMessageReports()
     if (reports) uiStore.stateMessageReports = reports
     const groupInfos = LocalStore.getGroupInfos()
-    if (groupInfos) groupStore.groupInfoList = groupInfos
+    if (groupInfos) groupStore.updateGroupInfos(groupInfos)
 
     uiStore.setVueSocket(vueSocket)
   }
@@ -85,6 +89,18 @@ export const useAuthStore = defineStore('auth', () => {
     vueSocket = null
     webSocketClient.setInstance(null)
     LocalStore.clearLocalStore()
+
+    // 清除所有 store 的内存状态，避免切换账号时残留上一个用户的数据
+    const conversationStore = useConversationStore()
+    const messageStore = useMessageStore()
+    const friendStore = useFriendStore()
+    const groupStore = useGroupStore()
+    const uiStore = useUIStore()
+    conversationStore.reset()
+    messageStore.reset()
+    friendStore.reset()
+    groupStore.reset()
+    uiStore.reset()
   }
 
   function modifyMyInfo(value: any) {
