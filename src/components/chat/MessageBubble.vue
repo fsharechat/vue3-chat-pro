@@ -348,6 +348,17 @@ function toggleAudio() {
 .file-download:hover { background: rgba(255,255,255,0.2); }
 .file-download::after { content: '↓'; font-size: 14px; font-weight: 600; }
 
+/* 接收方气泡（浅色背景）颜色覆盖 */
+.bubble-other .file-size { color: var(--text-muted); }
+.bubble-other .file-download {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.bubble-other .file-download:hover { background: var(--bg-tertiary); }
+.bubble-other .audio-icon { color: var(--text-secondary); }
+.bubble-other .unknown-msg { color: var(--text-muted); font-style: italic; }
+
 /* Location / Unknown */
 .voip-msg { display: flex; align-items: center; gap: 8px; min-width: 120px; padding: 2px 0; }
 .voip-msg span { font-size: 13px; }

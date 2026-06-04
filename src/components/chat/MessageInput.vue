@@ -244,7 +244,6 @@ function onPaste(e: ClipboardEvent) {
   flex-direction: column;
   height: 100%;
   background: var(--bg-surface);
-  border-top: 1px solid var(--border);
 }
 
 /* Toolbar */

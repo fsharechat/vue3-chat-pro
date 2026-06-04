@@ -87,7 +87,6 @@ function onMenuSelect(key: string) {
   flex-direction: column;
   height: 100%;
   background: var(--bg-overlay);
-  border-right: 1px solid var(--border);
 }
 .panel-header {
   display: flex;

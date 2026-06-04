@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 import { useMessageStore } from '@/stores/useMessageStore'
@@ -63,18 +63,97 @@ async function onContextMenuSelect(key: string) {
     msgStore.deleteMessage(msg.messageId)
   }
 }
+
+// ── Resizable conversation panel (horizontal) ─────────────
+const CONV_WIDTH_KEY = 'conv-panel-width'
+const MIN_WIDTH = 200
+const MAX_WIDTH = 420
+
+const convWidth = ref(parseInt(localStorage.getItem(CONV_WIDTH_KEY) ?? '270'))
+
+let hDragging = false
+let hStartX = 0
+let hStartWidth = 0
+
+function onResizerMousedown(e: MouseEvent) {
+  hDragging = true
+  hStartX = e.clientX
+  hStartWidth = convWidth.value
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+// ── Resizable input area (vertical) ───────────────────────
+const INPUT_HEIGHT_KEY = 'input-area-height'
+const MIN_HEIGHT = 100
+const MAX_HEIGHT = 400
+
+const inputHeight = ref(parseInt(localStorage.getItem(INPUT_HEIGHT_KEY) ?? '196'))
+
+let vDragging = false
+let vStartY = 0
+let vStartHeight = 0
+
+function onHResizerMousedown(e: MouseEvent) {
+  vDragging = true
+  vStartY = e.clientY
+  vStartHeight = inputHeight.value
+  document.body.style.cursor = 'row-resize'
+  document.body.style.userSelect = 'none'
+}
+
+// ── Shared mousemove / mouseup ─────────────────────────────
+function onMousemove(e: MouseEvent) {
+  if (hDragging) {
+    const delta = e.clientX - hStartX
+    convWidth.value = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, hStartWidth + delta))
+  }
+  if (vDragging) {
+    const delta = vStartY - e.clientY          // 向上拖 → delta 正 → 高度增加
+    inputHeight.value = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, vStartHeight + delta))
+  }
+}
+
+function onMouseup() {
+  if (hDragging) {
+    hDragging = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    localStorage.setItem(CONV_WIDTH_KEY, String(convWidth.value))
+  }
+  if (vDragging) {
+    vDragging = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    localStorage.setItem(INPUT_HEIGHT_KEY, String(inputHeight.value))
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousemove', onMousemove)
+  document.addEventListener('mouseup', onMouseup)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onMousemove)
+  document.removeEventListener('mouseup', onMouseup)
+})
 </script>
 
 <template>
   <div class="chat-page">
-    <aside class="conv-panel">
+    <aside class="conv-panel" :style="{ width: convWidth + 'px' }">
       <ConversationList />
     </aside>
+
+    <div class="resizer" @mousedown.prevent="onResizerMousedown"></div>
+
     <main class="chat-area" v-if="convStore.selectTarget">
       <div class="message-area">
         <MessageList @context-menu="onContextMenu" />
       </div>
-      <div class="input-area">
+      <div class="h-resizer" @mousedown.prevent="onHResizerMousedown"></div>
+      <div class="input-area" :style="{ height: inputHeight + 'px' }">
         <MessageInput />
       </div>
     </main>
@@ -102,10 +181,43 @@ async function onContextMenuSelect(key: string) {
 
 <style scoped>
 .chat-page { display: flex; height: 100%; overflow: hidden; }
-.conv-panel { width: 270px; flex-shrink: 0; }
+
+.conv-panel { flex-shrink: 0; overflow: hidden; }
+
+.resizer {
+  width: 1px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: var(--border);
+  position: relative;
+  transition: background 120ms;
+  z-index: 10;
+}
+.resizer::after {
+  content: '';
+  position: absolute;
+  inset: 0 -5px;
+}
+.resizer:hover { background: var(--accent); }
+
 .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-base); }
 .message-area { flex: 1; min-height: 0; overflow: hidden; }
-.input-area { flex-shrink: 0; height: 196px; }
+.h-resizer {
+  height: 1px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: var(--border);
+  position: relative;
+  transition: background 120ms;
+  z-index: 10;
+}
+.h-resizer::after {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
+}
+.h-resizer:hover { background: var(--accent); }
+.input-area { flex-shrink: 0; }
 .chat-empty {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
