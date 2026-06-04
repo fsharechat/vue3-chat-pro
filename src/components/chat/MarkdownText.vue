@@ -71,10 +71,10 @@ const rendered = computed(() => {
   text-align: left;
 }
 .markdown-text :deep(th) {
-  background: var(--bg-elevated);
+  background: rgba(0, 0, 0, 0.18);
   font-weight: 600;
 }
 .markdown-text :deep(tr:nth-child(even) td) {
-  background: var(--bg-overlay);
+  background: rgba(0, 0, 0, 0.10);
 }
 </style>
