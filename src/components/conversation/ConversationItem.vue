@@ -6,6 +6,7 @@ import { useConversationStore } from '@/stores/useConversationStore'
 import { useUIStore } from '@/stores/useUIStore'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
+import TimeUtils from '@/websocket/utils/timeUtils'
 
 const props = defineProps<{ conversation: StateConversationInfo; isActive: boolean }>()
 const emit = defineEmits<{ (e: 'context-menu', event: MouseEvent, conv: StateConversationInfo): void }>()
@@ -33,13 +34,7 @@ const lastMessageText = computed(() => {
 const timeText = computed(() => {
   const ts = props.conversation.conversationInfo.timestamp
   if (!ts) return ''
-  const now = new Date()
-  const d = new Date(ts)
-  const isToday = d.toDateString() === now.toDateString()
-  if (isToday) return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
-  const isThisYear = d.getFullYear() === now.getFullYear()
-  if (isThisYear) return `${d.getMonth()+1}/${d.getDate()}`
-  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`
+  return TimeUtils.getTimeStringAutoShort2(ts, false)
 })
 
 const unread = computed(() => props.conversation.conversationInfo.unreadCount?.unread ?? 0)

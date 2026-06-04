@@ -9,6 +9,7 @@ import MarkdownText from './MarkdownText.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import LocationMessage from './LocationMessage.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
+import TimeUtils from '@/websocket/utils/timeUtils'
 import BenzAMRRecorder from 'benz-amr-recorder'
 
 const props = defineProps<{
@@ -132,10 +133,7 @@ const readCountText = computed(() => {
 })
 
 function formatTime(ts: number) {
-  const d = new Date(ts)
-  const h = d.getHours().toString().padStart(2, '0')
-  const m = d.getMinutes().toString().padStart(2, '0')
-  return `${h}:${m}`
+  return TimeUtils.getTimeStringAutoShort2(ts, true)
 }
 
 let amrInstance: any = null
