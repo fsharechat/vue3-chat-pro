@@ -38,7 +38,7 @@ const isGroupOwner = computed(() => {
     return groupInfo.value.owner === LocalStore.getUserId()
   }
   // Fallback: check member type from member list
-  return rawMembers.value.find((m: any) => m.memberId === LocalStore.getUserId())?.type === 2
+  return rawMembers.value.find((m: any) => m.memberId === LocalStore.getUserId())?.memberType === 2
 })
 
 // Member list: add/remove buttons + actual members

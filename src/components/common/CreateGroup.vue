@@ -76,7 +76,7 @@ const groupedFriendList = computed(() => {
   const items: Array<{ type: 'header'; label: string } | { type: 'friend'; friend: any }> = []
   let lastInitial = ''
   for (const friend of waitCheckedFriendList.value) {
-    const initial = friend.initial || '#'
+    const initial = friend?.initial || '#'
     if (initial !== lastInitial) {
       items.push({ type: 'header', label: initial })
       lastInitial = initial
