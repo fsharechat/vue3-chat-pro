@@ -134,7 +134,16 @@ export const useMessageStore = defineStore('message', () => {
     } else if (chat.protoMessages.length > CONVERSATION_MAX_MESSAGE_SIZE) {
       chat.protoMessages.splice(0, chat.protoMessages.length - CONVERSATION_MAX_MESSAGE_SIZE)
     }
-    chat.protoMessages.push(protoMessage)
+    // If a streaming virtual message is already in the list, insert the new outgoing
+    // message before it so the streaming bubble stays at the bottom and remains visible.
+    const streamingIdx = chat.protoMessages.findIndex(
+      (m: any) => typeof m.messageId === 'string' && m.messageId.startsWith('stream_')
+    )
+    if (streamingIdx !== -1) {
+      chat.protoMessages.splice(streamingIdx, 0, protoMessage)
+    } else {
+      chat.protoMessages.push(protoMessage)
+    }
   }
 
   function addOldMessage(protoMessage: ProtoMessage) {
@@ -203,6 +212,7 @@ export const useMessageStore = defineStore('message', () => {
       }
       chat.protoMessages.push(virtualMsg)
       streamingMap.value[streamId] = { target, virtualId }
+      triggerScrollBottom()
     }
 
     const entry = streamingMap.value[streamId]
