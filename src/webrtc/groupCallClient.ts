@@ -13,6 +13,10 @@ import Participant from "./participant";
 import kurentoUtils from "kurento-utils"
 import MessageConfig from '../websocket/message/messageConfig'
 import LocalStore from "../websocket/store/localstore";
+import webSocketClient from "../websocket/websocketcli";
+import Message from "../websocket/message/message";
+import ProtoMessage from "../websocket/message/protomessage";
+import FscMessage from "../websocket/message/FscMessage";
 
 export default class GroupCallClient extends OnReceiverMessageListener {
     currentSession;
@@ -22,9 +26,8 @@ export default class GroupCallClient extends OnReceiverMessageListener {
     isInitiator;
     participants = {};
 
-    constructor(store){
+    constructor(){
         super();
-        this.store = store;
         ChatManager.addReceiveMessageListener(this);
     }
 
@@ -187,8 +190,16 @@ export default class GroupCallClient extends OnReceiverMessageListener {
         return session;
     }
 
-    sendMessage(target,messageConent,tos = ''){
-        this.store.dispatch('sendMessage', new SendMessage(target,messageConent,tos));
+    sendMessage(target, messageContent, tos = '') {
+        const msg = new SendMessage(target, messageContent, tos);
+        try {
+            const m = Message.conert2Message(msg);
+            const protoMsg = ProtoMessage.convertToProtoMessage(m);
+            const fscMsg = FscMessage.convertToFscMessage(m);
+            webSocketClient._instance?.sendMessage(fscMsg);
+        } catch(e) {
+            webSocketClient._instance?.sendMessage(msg);
+        }
     }
 
     rejectOtherCall(callId,clientId){

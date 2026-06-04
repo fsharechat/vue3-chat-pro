@@ -24,7 +24,7 @@ export default class Participant {
         var message = {
           type: 'onIceCandidate',
           candidate: candidate,
-          name: name
+          name: this.sender
         };
         this.groupCallClient.sendSignalMessage(message);
     }

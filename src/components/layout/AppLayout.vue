@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/useUIStore'
+import { useGroupCallStore } from '@/stores/useGroupCallStore'
 import { useMessage } from 'naive-ui'
 import AppSidebar from './AppSidebar.vue'
 import GroupVideoCallModal from '@/components/group/GroupVideoCall.vue'
@@ -10,6 +11,8 @@ import CreateGroup from '@/components/common/CreateGroup.vue'
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+// Initialize early so the GroupCallClient registers its message listener before any calls arrive
+const groupCallStore = useGroupCallStore()
 const message = useMessage()
 
 function onVisibility() { uiStore.visibilityChange(document.visibilityState) }
@@ -31,7 +34,7 @@ onUnmounted(() => document.removeEventListener('visibilitychange', onVisibility)
     <div class="main">
       <router-view />
     </div>
-    <GroupVideoCallModal v-if="uiStore.showGroupCallVideoDialog" />
+    <GroupVideoCallModal v-if="groupCallStore.showGroupCallDialog" />
     <SearchFriendDialog v-if="uiStore.showSearchFriendDialog" />
     <CreateGroup v-if="uiStore.showCreateGroupDialog" />
   </div>

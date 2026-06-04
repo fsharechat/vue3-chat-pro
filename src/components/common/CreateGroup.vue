@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGroupStore } from '@/stores/useGroupStore'
 import { useFriendStore } from '@/stores/useFriendStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useConversationStore } from '@/stores/useConversationStore'
+import { useGroupCallStore } from '@/stores/useGroupCallStore'
 import { useMessage } from 'naive-ui'
 import webSocketClient from '@/websocket/websocketcli'
 import LocalStore from '@/websocket/store/localstore'
@@ -14,6 +15,7 @@ const groupStore = useGroupStore()
 const friendStore = useFriendStore()
 const uiStore = useUIStore()
 const convStore = useConversationStore()
+const groupCallStore = useGroupCallStore()
 const message = useMessage()
 
 const { groupOperateState, groupMemberTracker, groupMemberMap } = storeToRefs(groupStore)
@@ -33,8 +35,31 @@ const checkFriendTips = computed(() =>
   selectedFriends.value.length === 0 ? '未选择联系人' : `已选择${selectedFriends.value.length}位联系人`
 )
 
+// state=4 时直接用群成员列表，排除自己
+const groupVideoMemberList = computed(() => {
+  void groupMemberTracker.value
+  const selfId = LocalStore.getUserId()
+  const members = groupMemberMap.value.get(selectTarget.value) ?? []
+  return members
+    .filter((m: any) => m.memberId !== selfId)
+    .map((m: any) => {
+      const user = uiStore.userInfoList.find((u: any) => u.uid === m.memberId)
+      const name = m.alias || user?.displayName || user?.nickname || m.memberId
+      const img = user?.portrait || ''
+      const nameStr = name as string
+      const initial = nameStr ? nameStr[0].toUpperCase() : '#'
+      return { wxid: m.memberId, nickname: name, remark: m.alias || '', img, initial, checked: false, disabled: false }
+    })
+    .filter((m: any) => {
+      if (!searchInput.value) return true
+      return (m.remark || m.nickname || '').includes(searchInput.value)
+    })
+})
+
 // Friends list filtered and annotated for current mode
 const waitCheckedFriendList = computed(() => {
+  if (groupOperateState.value === 4) return groupVideoMemberList.value
+
   // Force reactivity on tracker
   void groupMemberTracker.value
   const allFriends = friendStore.searchedFriendlist.slice(1)
@@ -61,14 +86,29 @@ const waitCheckedFriendList = computed(() => {
     } else if (groupOperateState.value === 3) {
       isShow = true
       if (selectTarget.value === friend.wxid) { isChecked = true; isDisabled = true }
-    } else if (groupOperateState.value === 4) {
-      const inGroup = members.find((m: any) => m.memberId === friend.wxid)
-      if (inGroup) { isShow = true }
     }
 
     if (!isShow) return null
     return { ...friend, checked: isChecked, disabled: isDisabled }
   }).filter(Boolean)
+})
+
+// state=4 时确保群成员已加载
+onMounted(async () => {
+  if (groupOperateState.value === 4) {
+    const target = selectTarget.value
+    if (target && !(groupMemberMap.value.get(target)?.length)) {
+      try {
+        const data = await (webSocketClient as any)._instance?.getGroupMember(target)
+        if (data?.result) {
+          groupStore.groupMemberMap.set(target, data.result)
+          groupStore.groupMemberTracker++
+        }
+      } catch (e) {
+        console.warn('load group members failed', e)
+      }
+    }
+  }
 })
 
 // 构建带分组头的渲染列表，只在字母变化时插入分组标题
@@ -145,8 +185,7 @@ async function confirm() {
       const data = await webSocketClient.createGroup(groupName, memberIds)
       if (data?.code === SUCCESS_CODE) exit()
     } else if (state === 4) {
-      uiStore.showGroupCallVideoDialog = true
-      groupStore.groupCallMembers = memberIds.map(id => ({ uid: id, name: id }))
+      groupCallStore.startGroupCall(selectTarget.value, memberIds, uiStore.userInfoList)
       exit()
     }
   } catch { message.error('操作失败') } finally {

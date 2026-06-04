@@ -102,6 +102,9 @@ export default class Message {
         message.conversation = new Conversation(stateConversationInfo.conversationInfo.conversationType,
             stateConversationInfo.conversationInfo.target,
             stateConversationInfo.conversationInfo.line);
+        if(sendMessage.tos && sendMessage.tos !== ''){
+            message.tos = sendMessage.tos;
+        }
         message.content = sendMessage.messageContent;
         message.from = LocalStore.getUserId();
         message.status = MessageStatus.Sending;
