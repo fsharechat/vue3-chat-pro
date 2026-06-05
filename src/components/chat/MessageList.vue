@@ -53,15 +53,16 @@ function scrollToBottom() {
 
 watch(scrollBottomTrigger, () => scrollToBottom())
 watch(streamingTokenCount, () => { if (isAtBottom.value) scrollToBottom() })
-watch(selectTarget, () => { convStore.isLoadRemoteMessage = false; unreadBadge.value = 0; scrollToBottom() })
+watch(selectTarget, () => { convStore.isLoadRemoteMessage = false; unreadBadge.value = 0; scrollToBottom(); uiStore.stopAudio() })
 // 收到新消息：在底部自动滚，否则徽标 +1
 watch(incomingMsgTrigger, () => {
   if (isAtBottom.value) scrollToBottom()
   else unreadBadge.value++
 })
-// tab 切回来：清除当前会话未读角标
+// tab 切回来：清除当前会话未读角标；切走时停止语音播放
 watch(() => uiStore.visibilityState, (state) => {
   if (state === 'visible') convStore.clearUnreadStatus()
+  else uiStore.stopAudio()
 })
 // 加载历史消息时恢复滚动位置
 watch(() => msgStore.currentMessages.length, () => {

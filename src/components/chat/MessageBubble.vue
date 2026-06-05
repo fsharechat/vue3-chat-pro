@@ -11,7 +11,6 @@ import LocationMessage from './LocationMessage.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
 import TimeUtils from '@/websocket/utils/timeUtils'
 import Utils from '@/websocket/utils/utils'
-import BenzAMRRecorder from 'benz-amr-recorder'
 
 const props = defineProps<{
   message: ProtoMessage
@@ -98,6 +97,11 @@ const audioInfo = computed(() => {
   } catch { return { duration: 0, url: '' } }
 })
 
+const audioMsgWidth = computed(() => {
+  const d = audioInfo.value.duration
+  return Math.min(220, 80 + d * 4) + 'px'
+})
+
 const fileInfo = computed(() => {
   try {
     const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
@@ -137,14 +141,10 @@ function formatTime(ts: number) {
   return TimeUtils.getTimeStringAutoShort2(ts, true)
 }
 
-let amrInstance: any = null
+const isAudioPlaying = computed(() => uiStore.currentAudioMessageId === props.message.messageId)
 function toggleAudio() {
-  try {
-    if (amrInstance) { amrInstance.stop(); amrInstance = null; return }
-    amrInstance = new BenzAMRRecorder()
-    amrInstance.initWithUrl(audioInfo.value.url).then(() => amrInstance.play())
-    amrInstance.onEnded(() => { amrInstance = null })
-  } catch (e) { console.warn('Audio playback error', e) }
+  if (isAudioPlaying.value) { uiStore.stopAudio(); return }
+  uiStore.playAudio(audioInfo.value.url, props.message.messageId, () => {})
 }
 </script>
 
@@ -170,9 +170,13 @@ function toggleAudio() {
         </div>
         <div class="bubble" :class="{ 'bubble-self': isSelf, 'bubble-other': !isSelf }">
           <MarkdownText v-if="isText" :content="textContent" :streaming="!!(message as any).streaming" :emojis="emojis" />
-          <div v-else-if="isAudio" class="audio-msg" @click="toggleAudio">
+          <div v-else-if="isAudio" class="audio-msg" :style="{ width: audioMsgWidth }" @click="toggleAudio">
             <span class="audio-duration">{{ audioInfo.duration }}"</span>
-            <i class="iconfont icon-voice"></i>
+            <div class="audio-icon" :class="{ playing: isAudioPlaying }">
+              <span class="bar"></span>
+              <span class="bar"></span>
+              <span class="bar"></span>
+            </div>
           </div>
           <n-image v-else-if="isImage"
             :src="thumbnailSrc || message.content.remoteMediaUrl"
@@ -314,11 +318,30 @@ function toggleAudio() {
 
 /* Audio */
 .audio-msg {
-  display: flex; align-items: center; gap: 10px;
-  cursor: pointer; min-width: 80px; padding: 2px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; min-width: 80px; padding: 2px 0; gap: 12px;
 }
-.audio-icon { color: rgba(255,255,255,0.8); }
 .audio-duration { font-family: var(--font-mono); font-size: 12px; opacity: 0.8; }
+.audio-icon {
+  display: flex; align-items: flex-end; gap: 2px; height: 16px; flex-shrink: 0;
+}
+.audio-icon .bar {
+  display: block; width: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.75);
+  height: 6px;
+  transition: height 0.1s;
+}
+.audio-icon .bar:nth-child(1) { height: 5px; }
+.audio-icon .bar:nth-child(2) { height: 9px; }
+.audio-icon .bar:nth-child(3) { height: 5px; }
+.audio-icon.playing .bar:nth-child(1) { animation: audioBar 0.7s ease-in-out infinite alternate; }
+.audio-icon.playing .bar:nth-child(2) { animation: audioBar 0.7s ease-in-out 0.15s infinite alternate; }
+.audio-icon.playing .bar:nth-child(3) { animation: audioBar 0.7s ease-in-out 0.3s infinite alternate; }
+@keyframes audioBar {
+  from { height: 3px; opacity: 0.5; }
+  to   { height: 14px; opacity: 1; }
+}
+.bubble-other .audio-icon .bar { background: var(--text-secondary); }
 
 /* File */
 .file-msg {

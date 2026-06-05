@@ -173,6 +173,14 @@ function sendRelay() {
           :long="pendingContent.long"
         />
       </div>
+      <div v-else-if="contentType === MessageContentType.Voice" class="preview-audio">
+        <span class="pa-duration">{{ pendingContent.duration }}"</span>
+        <div class="pa-icon">
+          <span class="pa-bar"></span>
+          <span class="pa-bar"></span>
+          <span class="pa-bar"></span>
+        </div>
+      </div>
       <div v-else class="preview-text">[消息]</div>
     </div>
     <template #action>
@@ -194,6 +202,13 @@ function sendRelay() {
 .preview-image { max-width: 200px; max-height: 280px; border-radius: 4px; }
 .preview-text { text-align: center; color: var(--text-secondary); padding: 20px; font-size: 14px; }
 .preview-location { display: flex; justify-content: center; }
+.preview-audio { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-elevated); border-radius: 8px; border: 1px solid var(--border); min-width: 100px; max-width: 180px; margin: 0 auto; }
+.pa-duration { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+.pa-icon { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.pa-bar { display: block; width: 3px; border-radius: 2px; background: var(--text-secondary); }
+.pa-bar:nth-child(1) { height: 5px; }
+.pa-bar:nth-child(2) { height: 9px; }
+.pa-bar:nth-child(3) { height: 5px; }
 .preview-video { position: relative; display: inline-flex; justify-content: center; width: 100%; }
 .pv-thumb { max-width: 220px; max-height: 160px; border-radius: 6px; object-fit: cover; display: block; }
 .pv-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; pointer-events: none; }

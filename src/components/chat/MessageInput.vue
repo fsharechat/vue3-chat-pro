@@ -38,15 +38,24 @@ const uploadFileRef = ref<HTMLInputElement>()
 
 const sendBtnActive = computed(() => content.value.trim().length > 0)
 
+function buildLocal(mc: any) {
+  const sm = new SendMessage(convStore.selectTarget, mc)
+  const m = Message.conert2Message(sm)
+  const protoMsg = ProtoMessage.convertToProtoMessage(m)
+  msgStore.preAddProtoMessage(protoMsg as any)
+  msgStore.triggerScrollBottom()
+  return { protoMsg, m }
+}
+
+function sendToServer(m: any) {
+  const fscMsg = FscMessage.convertToFscMessage(m)
+  ;(webSocketClient as any)._instance?.sendMessage(fscMsg)
+}
+
 function buildAndSend(mc: any) {
   try {
-    const sm = new SendMessage(convStore.selectTarget, mc)
-    const m = Message.conert2Message(sm)
-    const protoMsg = ProtoMessage.convertToProtoMessage(m)
-    const fscMsg = FscMessage.convertToFscMessage(m)
-    msgStore.preAddProtoMessage(protoMsg as any)
-    ;(webSocketClient as any)._instance?.sendMessage(fscMsg)
-    msgStore.triggerScrollBottom()
+    const { protoMsg, m } = buildLocal(mc)
+    sendToServer(m)
     return protoMsg
   } catch (e) {
     console.error('Send failed', e)
@@ -90,13 +99,13 @@ async function sendImage(file: File) {
     if (data?.code !== SUCCESS_CODE) return
 
     const thumbnail = await getImageThumbnail(file)
-    const mc = new ImageMessageContent(file, null, thumbnail)
-    const protoMsg = buildAndSend(mc)
-    if (!protoMsg) return
+    const { protoMsg, m } = buildLocal(new ImageMessageContent(file, null, thumbnail))
 
     await fetch(data.result.url, { method: 'PUT', body: file })
     const remotePath = `${data.result.domain}/${key}`
     const finalMc = new ImageMessageContent(file, remotePath, thumbnail)
+    m.content = finalMc
+    sendToServer(m)
     msgStore.updateSendMessage({ messageId: protoMsg.messageId, messageContent: finalMc })
   } catch (e) { console.error('Image send failed', e) }
 }
@@ -128,16 +137,17 @@ async function onFileSelected(e: Event) {
     const key = `${MessageContentMediaType.File}-${LocalStore.getUserId()}-${Date.now()}-${file.name}`
     const data = await webSocketClient.getMinioUploadUrl(MessageContentMediaType.File, key)
     if (data?.code !== SUCCESS_CODE) return
-    const mc = new FileMessageContent(file, '')
-    const protoMsg = buildAndSend(mc)
-    if (!protoMsg) return
+    const { protoMsg, m } = buildLocal(new FileMessageContent(file, ''))
     try {
       await axios.request({
         method: 'PUT', url: data.result.url, data: file,
         onUploadProgress: (p: any) => msgStore.setFileDownloadStatus({ messageId: protoMsg.messageId, downloadStatus: 1, downloadPercent: Math.floor(p.loaded / p.total * 100) })
       })
       msgStore.setFileDownloadStatus({ messageId: protoMsg.messageId, downloadStatus: 2, downloadPercent: 100 })
-      msgStore.updateSendMessage({ messageId: protoMsg.messageId, messageContent: new FileMessageContent(file, `${data.result.domain}/${key}`) })
+      const finalMc = new FileMessageContent(file, `${data.result.domain}/${key}`)
+      m.content = finalMc
+      sendToServer(m)
+      msgStore.updateSendMessage({ messageId: protoMsg.messageId, messageContent: finalMc })
     } catch { message.error('文件上传失败') }
   } catch (e) { console.error('File send failed', e) }
   ;(e.target as HTMLInputElement).value = ''

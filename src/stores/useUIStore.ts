@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue'
+import BenzAMRRecorder from 'benz-amr-recorder'
 import { defineStore } from 'pinia'
 import type { StateMessageReport, ProtoMessage } from '@/types'
 import { useConversationStore } from './useConversationStore'
@@ -110,6 +111,27 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
+  const currentAudioMessageId = ref('')
+  let _amrInstance: any = null
+
+  function playAudio(url: string, messageId: string, onEnded: () => void) {
+    stopAudio()
+    try {
+      _amrInstance = new BenzAMRRecorder()
+      _amrInstance.initWithUrl(url).then(() => {
+        _amrInstance.play()
+        currentAudioMessageId.value = messageId
+      })
+      _amrInstance.onEnded(() => { _amrInstance = null; currentAudioMessageId.value = ''; onEnded() })
+    } catch (e) { console.warn('Audio playback error', e) }
+  }
+
+  function stopAudio() {
+    try { _amrInstance?.stop() } catch {}
+    _amrInstance = null
+    currentAudioMessageId.value = ''
+  }
+
   function setVueSocket(ws: any) { _vueSocket = ws }
   function setOnlineStatus(status: boolean) { onlineStatus.value = status }
   function setFirstLogin(val: boolean) { firstLogin.value = val }
@@ -186,7 +208,9 @@ export const useUIStore = defineStore('ui', () => {
     showMessageRightMenu, currentRightMenuMessage, waitUserIds,
     emptyMessage, isWinMaxed, stateMessageReports, groupCallMembers,
     userInfoList, emojis, unreadTotalCount,
+    currentAudioMessageId,
     initNotify, setVueSocket, setOnlineStatus, setFirstLogin, visibilityChange,
-    updateUserInfos, addMessageReport, uploadReport, playMsgNotify, reset,
+    updateUserInfos, addMessageReport, uploadReport, playMsgNotify,
+    playAudio, stopAudio, reset,
   }
 })

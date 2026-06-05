@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 import { useMessageStore } from '@/stores/useMessageStore'
@@ -16,6 +16,7 @@ import { SUCCESS_CODE } from '@/constant'
 import type { ProtoMessage } from '@/types'
 import LocalStore from '@/websocket/store/localstore'
 import RecallMessageNotification from '@/websocket/message/notification/recallMessageNotification'
+import MessageContentType from '@/websocket/message/messageContentType'
 
 const uiStore = useUIStore()
 const msgStore = useMessageStore()
@@ -28,12 +29,18 @@ const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 const contextMessage = ref<any>(null)
 
-const contextMenuOptions = [
-  { label: '转发', key: 'relay' },
-  { label: '复制文本', key: 'copy' },
-  { label: '撤回消息', key: 'recall' },
-  { label: '删除', key: 'delete' },
-]
+const contextMenuOptions = computed(() => {
+  const type = contextMessage.value?.content?.type
+  const isMedia = type === MessageContentType.Image || type === MessageContentType.Video
+  const base = [
+    { label: '转发', key: 'relay' },
+    { label: '复制文本', key: 'copy' },
+  ]
+  if (isMedia) base.push({ label: '下载', key: 'download' })
+  base.push({ label: '撤回消息', key: 'recall' })
+  base.push({ label: '删除', key: 'delete' })
+  return base
+})
 
 function onContextMenu(e: MouseEvent, msg: any) {
   contextMenuX.value = e.clientX; contextMenuY.value = e.clientY
@@ -59,6 +66,22 @@ async function onContextMenuSelect(key: string) {
       const text = msg.content?.searchableContent ?? msg.content?.content ?? ''
       if (text) navigator.clipboard.writeText(text)
     } catch { message.error('复制失败') }
+  } else if (key === 'download') {
+    const url = msg.content?.remoteMediaUrl || msg.content?.remotePath
+    if (url) {
+      try {
+        const res = await fetch(url)
+        const blob = await res.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = objectUrl
+        a.download = msg.content?.name || url.split('/').pop() || 'download'
+        a.click()
+        URL.revokeObjectURL(objectUrl)
+      } catch { message.error('下载失败') }
+    } else {
+      message.warning('暂无可下载的文件地址')
+    }
   } else if (key === 'delete') {
     msgStore.deleteMessage(msg.messageId)
   }
