@@ -30,6 +30,17 @@ const showPersonalCard = ref(false)
 const showAboutDialog = ref(false)
 const showAddTip = ref(false)
 
+const SEEN_VERSION_KEY = 'seen-changelog-version'
+const hasNewVersion = ref(localStorage.getItem(SEEN_VERSION_KEY) !== __APP_VERSION__)
+
+function openAbout() {
+  showAboutDialog.value = true
+  if (hasNewVersion.value) {
+    localStorage.setItem(SEEN_VERSION_KEY, __APP_VERSION__)
+    hasNewVersion.value = false
+  }
+}
+
 function goConversation() { convStore.searchText = ''; router.push('/conversation') }
 function goFriend() { convStore.searchText = ''; router.push('/friend') }
 
@@ -109,7 +120,8 @@ function loginOut() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       </button>
-      <button class="footer-btn" title="关于" @click="showAboutDialog=true">
+      <button class="footer-btn" title="关于" style="position:relative" @click="openAbout">
+        <span v-if="hasNewVersion" class="dot-badge"></span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
         </svg>
