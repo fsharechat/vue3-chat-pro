@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/stores/useUIStore'
 import { useFriendStore } from '@/stores/useFriendStore'
+import { useGroupStore } from '@/stores/useGroupStore'
 import webSocketClient from '@/websocket/websocketcli'
 import FscMessage from '@/websocket/message/FscMessage'
 import Message from '@/websocket/message/message'
@@ -14,30 +15,45 @@ import LocalStore from '@/websocket/store/localstore'
 import Conversation from '@/websocket/model/conversation'
 import MessageStatus from '@/websocket/message/messageStatus'
 import MessageContentType from '@/websocket/message/messageContentType'
+import ConversationType from '@/websocket/model/conversationType'
 import { useMessageStore } from '@/stores/useMessageStore'
 
 const uiStore = useUIStore()
 const friendStore = useFriendStore()
+const groupStore = useGroupStore()
 const msgStore = useMessageStore()
 const { showRelayMessageDialog } = storeToRefs(uiStore)
 const { friendlist } = storeToRefs(friendStore)
+const { groupInfoList } = storeToRefs(groupStore)
 
 const innerVisible = ref(false)
 const waitRelayMessage = ref('')
 const waitRelayImageUrl = ref('')
 const contentType = ref(0)
 const pendingTarget = ref('')
+const pendingName = ref('')
+const pendingIsGroup = ref(false)
 const pendingContent = ref<any>(null)
 const searchText = ref('')
 
+const combinedList = computed(() => {
+  const friends = friendlist.value.slice(1).map(f => ({
+    target: f.wxid,
+    name: f.remark || f.nickname || '',
+    img: f.img,
+  }))
+  const groups = groupInfoList.value.map(g => ({
+    target: g.target,
+    name: g.name || '',
+    img: g.portrait,
+  }))
+  return [...friends, ...groups]
+})
+
 const filteredList = computed(() => {
-  const list = friendlist.value.slice(1)
   const kw = searchText.value.trim().toLowerCase()
-  if (!kw) return list
-  return list.filter(f => {
-    const name = (f.remark || f.nickname || '').toLowerCase()
-    return name.includes(kw)
-  })
+  if (!kw) return combinedList.value
+  return combinedList.value.filter(item => item.name.toLowerCase().includes(kw))
 })
 
 function showConfirmDialog(targetWxid: string) {
@@ -47,6 +63,9 @@ function showConfirmDialog(targetWxid: string) {
   if (!mc) return
 
   pendingTarget.value = targetWxid
+  pendingIsGroup.value = groupInfoList.value.some(g => g.target === targetWxid)
+  const matched = combinedList.value.find(item => item.target === targetWxid)
+  pendingName.value = matched?.name ?? ''
   pendingContent.value = mc
   contentType.value = msg.content.type
 
@@ -67,7 +86,8 @@ function sendRelay() {
     if (!mc || !pendingTarget.value) return
 
     const m = new Message()
-    m.conversation = new Conversation(0, pendingTarget.value, 0)
+    const convType = pendingIsGroup.value ? ConversationType.Group : ConversationType.Single
+    m.conversation = new Conversation(convType, pendingTarget.value, 0)
     m.from = LocalStore.getUserId()
     m.content = mc
     m.status = MessageStatus.Sending
@@ -107,20 +127,20 @@ function sendRelay() {
     </n-input>
     <div class="relay-list">
       <div
-        v-for="f in filteredList"
-        :key="f.wxid"
+        v-for="item in filteredList"
+        :key="item.target"
         class="relay-item"
-        @click="showConfirmDialog(f.wxid)"
+        @click="showConfirmDialog(item.target)"
       >
-        <img :src="f.img" class="ra" onerror="this.src='/images/vue.jpg'" />
-        <span>{{ f.remark || f.nickname }}</span>
+        <img :src="item.img" class="ra" onerror="this.src='/images/vue.jpg'" />
+        <span>{{ item.name }}</span>
       </div>
       <div v-if="filteredList.length === 0" class="empty-tip">无匹配结果</div>
     </div>
   </n-modal>
 
   <!-- 消息预览确认弹框（与好友选择弹框同级，不嵌套） -->
-  <n-modal v-model:show="innerVisible" title="转发" preset="dialog" style="width:380px">
+  <n-modal v-model:show="innerVisible" :title="`转发给 ${pendingName}`" preset="dialog" style="width:380px">
     <div class="preview">
       <n-input
         v-if="contentType === MessageContentType.Text"

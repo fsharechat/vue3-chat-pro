@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && vue-tsc && vite build",
     "preview": "vite preview",
     "test": "vitest"
   },
