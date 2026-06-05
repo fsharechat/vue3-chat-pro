@@ -59,6 +59,10 @@ watch(incomingMsgTrigger, () => {
   if (isAtBottom.value) scrollToBottom()
   else unreadBadge.value++
 })
+// tab 切回来：清除当前会话未读角标
+watch(() => uiStore.visibilityState, (state) => {
+  if (state === 'visible') convStore.clearUnreadStatus()
+})
 // 加载历史消息时恢复滚动位置
 watch(() => msgStore.currentMessages.length, () => {
   if (convStore.isLoadRemoteMessage)

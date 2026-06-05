@@ -95,7 +95,10 @@ export const useMessageStore = defineStore('message', () => {
       // 只有初始拉取完成后（firstLogin=false）才累加未读数，避免历史消息全部计入未读
       const uiStore = useUIStore()
       if (!uiStore.firstLogin && protoMessage.direction === 1) {
-        if (protoMessage.target !== convStore.selectTarget) {
+        const isCurrentConv = protoMessage.target === convStore.selectTarget
+        const isTabVisible = uiStore.visibilityState === 'visible'
+        // 非当前会话，或当前会话但 tab 已切走时，均播放提示音并累加未读
+        if (!isCurrentConv || !isTabVisible) {
           uiStore.playMsgNotify()
           const sc = convStore.conversations.find(c => c.conversationInfo.target === protoMessage.target)
           if (sc) {
