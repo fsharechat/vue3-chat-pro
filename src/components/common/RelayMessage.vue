@@ -17,6 +17,8 @@ import MessageStatus from '@/websocket/message/messageStatus'
 import MessageContentType from '@/websocket/message/messageContentType'
 import ConversationType from '@/websocket/model/conversationType'
 import { useMessageStore } from '@/stores/useMessageStore'
+import LocationMessage from '@/components/chat/LocationMessage.vue'
+import Utils from '@/websocket/utils/utils'
 
 const uiStore = useUIStore()
 const friendStore = useFriendStore()
@@ -152,9 +154,25 @@ function sendRelay() {
       <div v-else-if="contentType === MessageContentType.Image" class="preview-image-wrap">
         <img :src="waitRelayImageUrl" class="preview-image" />
       </div>
-      <div v-else-if="contentType === MessageContentType.Video" class="preview-text">[视频]</div>
-      <div v-else-if="contentType === MessageContentType.File" class="preview-text">[文件]</div>
-      <div v-else-if="contentType === MessageContentType.Location" class="preview-text">[位置]</div>
+      <div v-else-if="contentType === MessageContentType.Video" class="preview-video">
+        <img v-if="pendingContent.thumbnail" :src="`data:image/png;base64,${pendingContent.thumbnail}`" class="pv-thumb" />
+        <div class="pv-play">▶</div>
+      </div>
+      <div v-else-if="contentType === MessageContentType.File" class="preview-file">
+        <div class="pf-icon">📄</div>
+        <div class="pf-info">
+          <p class="pf-name">{{ pendingContent.name }}</p>
+          <p class="pf-size">{{ pendingContent.size ? Utils.formateSize(pendingContent.size) : '' }}</p>
+        </div>
+      </div>
+      <div v-else-if="contentType === MessageContentType.Location" class="preview-location">
+        <LocationMessage
+          :title="pendingContent.title"
+          :thumbnail="pendingContent.thumbnail"
+          :lat="pendingContent.lat"
+          :long="pendingContent.long"
+        />
+      </div>
       <div v-else class="preview-text">[消息]</div>
     </div>
     <template #action>
@@ -175,4 +193,13 @@ function sendRelay() {
 .preview-image-wrap { text-align: center; }
 .preview-image { max-width: 200px; max-height: 280px; border-radius: 4px; }
 .preview-text { text-align: center; color: var(--text-secondary); padding: 20px; font-size: 14px; }
+.preview-location { display: flex; justify-content: center; }
+.preview-video { position: relative; display: inline-flex; justify-content: center; width: 100%; }
+.pv-thumb { max-width: 220px; max-height: 160px; border-radius: 6px; object-fit: cover; display: block; }
+.pv-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.preview-file { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-elevated); border-radius: 8px; border: 1px solid var(--border); }
+.pf-icon { font-size: 28px; flex-shrink: 0; }
+.pf-info { overflow: hidden; }
+.pf-name { font-size: 13px; font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.pf-size { font-size: 11px; color: var(--text-muted); margin-top: 3px; font-family: var(--font-mono); }
 </style>

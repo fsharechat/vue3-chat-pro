@@ -29,9 +29,9 @@ const contextMenuY = ref(0)
 const contextMessage = ref<any>(null)
 
 const contextMenuOptions = [
-  { label: '撤回消息', key: 'recall' },
   { label: '转发', key: 'relay' },
   { label: '复制文本', key: 'copy' },
+  { label: '撤回消息', key: 'recall' },
   { label: '删除', key: 'delete' },
 ]
 
