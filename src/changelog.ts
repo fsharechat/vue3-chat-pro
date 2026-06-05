@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.1.9',
+    date: '2026-06-05',
+    items: [
+      '关于页面更新日志区域设置最大高度，超出可滚动查看',
+    ]
+  },
+  {
     version: '1.1.8',
     date: '2026-06-05',
     items: [

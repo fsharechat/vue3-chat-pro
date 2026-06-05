@@ -16,15 +16,17 @@ const version = __APP_VERSION__
 
     <div class="changelog">
       <div class="changelog-title">更新日志</div>
-      <div v-for="(entry, idx) in changelog" :key="entry.version" class="changelog-entry">
-        <div class="entry-header">
-          <span class="entry-version">v{{ entry.version }}</span>
-          <span v-if="idx === 0" class="entry-badge">最新</span>
-          <span class="entry-date">{{ entry.date }}</span>
+      <div class="changelog-scroll">
+        <div v-for="(entry, idx) in changelog" :key="entry.version" class="changelog-entry">
+          <div class="entry-header">
+            <span class="entry-version">v{{ entry.version }}</span>
+            <span v-if="idx === 0" class="entry-badge">最新</span>
+            <span class="entry-date">{{ entry.date }}</span>
+          </div>
+          <ul class="entry-items">
+            <li v-for="item in entry.items" :key="item">{{ item }}</li>
+          </ul>
         </div>
-        <ul class="entry-items">
-          <li v-for="item in entry.items" :key="item">{{ item }}</li>
-        </ul>
       </div>
     </div>
   </n-modal>
@@ -51,6 +53,14 @@ const version = __APP_VERSION__
   padding-top: 14px;
   margin-top: 4px;
 }
+.changelog-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.changelog-scroll::-webkit-scrollbar { width: 4px; }
+.changelog-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.changelog-scroll::-webkit-scrollbar-track { background: transparent; }
 .changelog-title {
   font-size: 12px; font-weight: 600;
   color: var(--text-muted);
