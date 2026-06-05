@@ -121,10 +121,14 @@ export const useMessageStore = defineStore('message', () => {
     const convStore = useConversationStore()
     if (!MessageConfig.isDisplayableMessage(protoMessage)) return
 
-    const sc = convStore.conversations.find((c: any) => c.conversationInfo.target === protoMessage.target)
-    if (sc) {
+    const scIdx = convStore.conversations.findIndex((c: any) => c.conversationInfo.target === protoMessage.target)
+    if (scIdx !== -1) {
+      const sc = convStore.conversations[scIdx]
       sc.conversationInfo.lastMessage = protoMessage
       sc.conversationInfo.timestamp = protoMessage.timestamp
+      convStore.conversations.splice(scIdx, 1)
+      convStore.conversations.unshift(sc)
+      convStore.updateConverstationOrder()
     }
 
     let chat = messages.value.find(m => m.target === protoMessage.target)

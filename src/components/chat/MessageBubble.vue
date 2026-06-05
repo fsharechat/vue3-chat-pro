@@ -10,6 +10,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import LocationMessage from './LocationMessage.vue'
 import MessageConfig from '@/websocket/message/messageConfig'
 import TimeUtils from '@/websocket/utils/timeUtils'
+import Utils from '@/websocket/utils/utils'
 import BenzAMRRecorder from 'benz-amr-recorder'
 
 const props = defineProps<{
@@ -100,7 +101,7 @@ const audioInfo = computed(() => {
 const fileInfo = computed(() => {
   try {
     const mc = MessageConfig.convert2MessageContent(props.message.from, props.message.content) as any
-    const size = mc.size ? `${(mc.size / 1024).toFixed(1)} KB` : ''
+    const size = mc.size ? Utils.formateSize(mc.size) : ''
     return { name: mc.name ?? '', size, url: mc.remotePath ?? '' }
   } catch { return { name: '', size: '', url: '' } }
 })
