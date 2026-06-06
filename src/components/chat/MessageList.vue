@@ -64,10 +64,13 @@ watch(() => uiStore.visibilityState, (state) => {
   if (state === 'visible') convStore.clearUnreadStatus()
   else uiStore.stopAudio()
 })
-// 加载历史消息时恢复滚动位置
-watch(() => msgStore.currentMessages.length, () => {
-  if (convStore.isLoadRemoteMessage)
+// 加载历史消息时恢复滚动位置；首次从0变为有消息时（刷新页面初始化）滚到底部
+watch(() => msgStore.currentMessages.length, (newLen, oldLen) => {
+  if (convStore.isLoadRemoteMessage) {
     nextTick(() => { if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight - prevScrollHeight })
+  } else if (oldLen === 0 && newLen > 0) {
+    scrollToBottom()
+  }
 })
 
 async function onScroll(e: Event) {

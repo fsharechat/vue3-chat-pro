@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.2',
+    date: '2026-06-06',
+    items: [
+      '修复 F5 刷新后聊天区域停在顶部的问题，现在加载完成后自动滚动到最新消息',
+    ]
+  },
+  {
     version: '1.2.1',
     date: '2026-06-06',
     items: [
