@@ -6,6 +6,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.1',
+    date: '2026-06-06',
+    items: [
+      '修复消息免打扰功能无效：开启后不再播放提示音（角标仍正常显示）',
+      '群组信息侧边栏顶部与聊天标题栏精确对齐',
+      '群组成员列表改为 4 列网格展示，头像居中、名称下方截断显示',
+      '底部退出/解散按钮高度收窄',
+      '侧边栏底部图标（主题/关于/退出）尺寸与导航图标统一为 20px',
+    ]
+  },
+  {
     version: '1.2.0',
     date: '2026-06-06',
     items: [

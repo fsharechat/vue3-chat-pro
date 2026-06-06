@@ -174,29 +174,29 @@ function saveGroupName(e: FocusEvent) {
 
     <!-- Member list -->
     <div class="member-list">
-      <div v-for="(item, i) in memberList" :key="i" class="member-row">
+      <div v-for="(item, i) in memberList" :key="i" class="member-cell">
         <!-- Add member button -->
         <template v-if="item.type === 'add' || item.type === 'add-single'">
           <div class="action-icon add-icon" @click="openAddMember">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
           </div>
-          <span class="member-name">{{ item.displayName }}</span>
+          <span class="member-cell-name">添加</span>
         </template>
         <!-- Remove member button -->
         <template v-else-if="item.type === 'remove'">
           <div class="action-icon remove-icon" @click="openRemoveMember">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
           </div>
-          <span class="member-name">{{ item.displayName }}</span>
+          <span class="member-cell-name">移除</span>
         </template>
         <!-- User -->
         <template v-else>
-          <UserAvatar :src="item.avatarUrl" :name="item.displayName" :size="36" />
-          <span class="member-name">{{ item.displayName }}</span>
+          <UserAvatar :src="item.avatarUrl" :name="item.displayName" :size="40" />
+          <span class="member-cell-name">{{ item.displayName }}</span>
         </template>
       </div>
     </div>
@@ -212,7 +212,7 @@ function saveGroupName(e: FocusEvent) {
 <style scoped>
 .group-info-panel {
   position: absolute;
-  top: 48px; right: 0; bottom: 0;
+  top: 52px; right: 0; bottom: 0;
   width: 220px;
   background: var(--bg-overlay);
   border-left: 1px solid var(--border);
@@ -247,39 +247,45 @@ function saveGroupName(e: FocusEvent) {
 .member-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px 4px;
+  align-content: start;
 }
-.member-row {
+.member-cell {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
+  gap: 4px;
   cursor: default;
+  min-width: 0;
 }
 .action-icon {
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   border: 1.5px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0;
   color: var(--text-muted);
   transition: background 150ms;
 }
 .action-icon:hover { background: var(--bg-elevated); color: var(--text-primary); }
-.member-name {
-  font-size: 13px; color: var(--text-primary);
+.member-cell-name {
+  font-size: 11px; color: var(--text-secondary);
+  width: 100%;
+  text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  flex: 1;
 }
 
 .panel-bottom {
-  padding: 14px 12px;
+  padding: 8px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   text-align: center;
 }
 .action-text {
-  font-size: 15px; cursor: pointer;
+  font-size: 13px; cursor: pointer;
 }
 .action-text.quit { color: var(--accent); }
 .action-text.dismiss { color: var(--danger); }
