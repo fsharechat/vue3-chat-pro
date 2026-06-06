@@ -41,6 +41,7 @@ const unread = computed(() => props.conversation.conversationInfo.unreadCount?.u
 const isTop = computed(() => !!props.conversation.conversationInfo.isTop)
 const isSilent = computed(() => !!props.conversation.conversationInfo.isSilent)
 const displayName = computed(() => props.conversation.name || props.conversation.conversationInfo.target)
+const isAtMe = computed(() => convStore.atMeSet.has(props.conversation.conversationInfo.target))
 
 function select() { convStore.selectConversation(props.conversation.conversationInfo.target) }
 </script>
@@ -66,6 +67,7 @@ function select() { convStore.selectConversation(props.conversation.conversation
         </div>
       </div>
       <div class="bottom-row">
+        <span v-if="isAtMe" class="at-me-tag">[有人@我]</span>
         <span class="preview" :class="{ 'has-unread': unread > 0 }">{{ lastMessageText || '暂无消息' }}</span>
         <span v-if="unread > 0" class="unread-badge">{{ unread > 99 ? '99+' : unread }}</span>
       </div>
@@ -163,4 +165,11 @@ function select() { convStore.selectConversation(props.conversation.conversation
   line-height: 1.4;
 }
 .preview.has-unread { color: var(--text-secondary); font-weight: 500; }
+.at-me-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  margin-right: 4px;
+}
 </style>

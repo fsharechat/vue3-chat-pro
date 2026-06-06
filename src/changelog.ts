@@ -6,6 +6,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.3',
+    date: '2026-06-06',
+    items: [
+      '个人信息卡片重新设计：点击左上角头像弹出大横幅卡片，支持点击编辑昵称与备注',
+      '聊天界面点击用户头像弹出只读用户信息卡片，无本地缓存时自动网络获取',
+      '群聊 @ 功能：输入 @ 弹出成员选择列表，支持关键字过滤、键盘导航、@所有人',
+      '收到 @ 消息时会话列表显示红色 [有人@我] 提示，滚动到底部后自动消除',
+      '服务端修复：消息转发时正确透传 mentionedType / mentionedTargets 字段',
+      '消息列表禁止滚动溢出传播至外层页面（overscroll-behavior: contain）',
+    ]
+  },
+  {
     version: '1.2.2',
     date: '2026-06-06',
     items: [

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { ProtoMessage } from '@/types'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/stores/useUIStore'
@@ -17,7 +17,10 @@ const props = defineProps<{
   prevMessage?: ProtoMessage
 }>()
 
-const emit = defineEmits<{ (e: 'contextmenu', event: MouseEvent): void }>()
+const emit = defineEmits<{
+  (e: 'contextmenu', event: MouseEvent): void
+  (e: 'avatar-click', userId: string, x: number, y: number): void
+}>()
 
 const uiStore = useUIStore()
 const convStore = useConversationStore()
@@ -141,6 +144,11 @@ function formatTime(ts: number) {
   return TimeUtils.getTimeStringAutoShort2(ts, true)
 }
 
+function onAvatarClick(e: MouseEvent) {
+  e.stopPropagation()
+  emit('avatar-click', props.message.from, e.clientX, e.clientY)
+}
+
 const isAudioPlaying = computed(() => uiStore.currentAudioMessageId === props.message.messageId)
 function toggleAudio() {
   if (isAudioPlaying.value) { uiStore.stopAudio(); return }
@@ -158,7 +166,9 @@ function toggleAudio() {
   </div>
 
   <div v-else-if="!isNotification" class="message-row" :class="{ self: isSelf }" @contextmenu.prevent="emit('contextmenu', $event)">
-    <UserAvatar :src="avatarSrc" :name="senderName" :size="34" radius="var(--radius-sm)" />
+    <div class="avatar-btn" @click.stop="onAvatarClick">
+      <UserAvatar :src="avatarSrc" :name="senderName" :size="34" radius="var(--radius-sm)" />
+    </div>
     <div class="bubble-wrap">
       <div v-if="!isSingleConversation && !isSelf" class="sender-name">{{ senderName }}</div>
       <div class="bubble-meta" :class="{ self: isSelf }">
@@ -255,6 +265,14 @@ function toggleAudio() {
 }
 .message-row:hover { background: rgba(255,255,255,0.015); }
 .message-row.self { flex-direction: row-reverse; }
+
+.avatar-btn {
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--dur-fast);
+}
+.avatar-btn:hover { opacity: 0.85; }
 
 .avatar {
   width: 34px;

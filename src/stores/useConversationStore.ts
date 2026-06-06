@@ -3,12 +3,14 @@ import { defineStore } from 'pinia'
 import type { StateConversationInfo } from '@/types'
 import LocalStore from '@/websocket/store/localstore'
 import webSocketClient from '@/websocket/websocketcli'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 export const useConversationStore = defineStore('conversation', () => {
   const conversations = ref<StateConversationInfo[]>([])
   const selectTarget = ref(LocalStore.getSelectTarget() ?? '')
   const searchText = ref('')
   const isLoadRemoteMessage = ref(false)
+  const atMeSet = ref<Set<string>>(new Set())
 
   const searchedConversationList = computed(() =>
     conversations.value.filter(c => c.name?.includes(searchText.value))
@@ -22,6 +24,7 @@ export const useConversationStore = defineStore('conversation', () => {
   function selectConversation(target: string) {
     isLoadRemoteMessage.value = false
     selectTarget.value = target
+    atMeSet.value.delete(target)
     const c = conversations.value.find(c => c.conversationInfo.target === target)
     if (c?.conversationInfo.unreadCount) {
       c.conversationInfo.unreadCount.unread = 0
@@ -29,6 +32,7 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   function clearUnreadStatus() {
+    atMeSet.value.delete(selectTarget.value)
     const c = conversations.value.find(c => c.conversationInfo.target === selectTarget.value)
     if (c?.conversationInfo.unreadCount) {
       c.conversationInfo.unreadCount.unread = 0
@@ -36,6 +40,19 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   function updateConversationInfo(protoConversationInfo: any) {
+    // Check if this group message @ mentions the current user
+    const msg = protoConversationInfo.lastMessage
+    if (protoConversationInfo.conversationType === 1 && msg?.content) {
+      const myId = useAuthStore().userId
+      const { mentionedType, mentionedTargets } = msg.content
+      if (
+        mentionedType === 2 ||
+        (mentionedType === 1 && Array.isArray(mentionedTargets) && mentionedTargets.includes(myId))
+      ) {
+        atMeSet.value.add(protoConversationInfo.target)
+      }
+    }
+
     let update = false
     let updateStateConversationInfo: StateConversationInfo | null = null
     let currentIndex = -1
@@ -156,7 +173,7 @@ export const useConversationStore = defineStore('conversation', () => {
   watch(selectTarget, val => LocalStore.setSelectTarget(val))
 
   return {
-    conversations, selectTarget, searchText, isLoadRemoteMessage,
+    conversations, selectTarget, searchText, isLoadRemoteMessage, atMeSet,
     searchedConversationList, isSingleConversation,
     selectConversation, clearUnreadStatus, updateConversationInfo,
     updateConversationIntro, topConversation, unTopConversation,

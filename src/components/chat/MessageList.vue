@@ -10,6 +10,7 @@ import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import MessageBubble from './MessageBubble.vue'
 import GroupInfo from '@/components/group/GroupInfo.vue'
+import UserProfileCard from '@/components/common/UserProfileCard.vue'
 import Conversation from '@/websocket/model/conversation'
 import ProtoMessage from '@/websocket/message/protomessage'
 import LocalStore from '@/websocket/store/localstore'
@@ -33,21 +34,30 @@ const chatTitle = computed(() => {
 
 const listRef = ref<HTMLElement>()
 const isLoading = ref(false)
+
+const profileCard = ref<{ userId: string; x: number; y: number } | null>(null)
+
+function onAvatarClick(userId: string, x: number, y: number) {
+  profileCard.value = { userId, x, y }
+}
 const isAtBottom = ref(true)
 const unreadBadge = ref(0)
 let prevScrollHeight = 0
+let autoScrolling = false
 
 function checkAtBottom(el: HTMLElement) {
   return el.scrollHeight - el.scrollTop - el.clientHeight < 60
 }
 
 function scrollToBottom() {
+  autoScrolling = true
   nextTick(() => requestAnimationFrame(() => {
     if (listRef.value) {
       listRef.value.scrollTop = listRef.value.scrollHeight
       isAtBottom.value = true
       unreadBadge.value = 0
     }
+    setTimeout(() => { autoScrolling = false }, 100)
   }))
 }
 
@@ -76,7 +86,12 @@ watch(() => msgStore.currentMessages.length, (newLen, oldLen) => {
 async function onScroll(e: Event) {
   const el = e.target as HTMLElement
   isAtBottom.value = checkAtBottom(el)
-  if (isAtBottom.value) unreadBadge.value = 0
+  if (isAtBottom.value) {
+    unreadBadge.value = 0
+    if (!autoScrolling) {
+      convStore.atMeSet.delete(selectTarget.value)
+    }
+  }
   if (el.scrollTop > 0 || isLoading.value) return
   isLoading.value = true
   prevScrollHeight = el.scrollHeight
@@ -141,6 +156,14 @@ async function toggleInfoPanel() {
     <!-- Info panel: positioned absolute over messages area -->
     <GroupInfo v-if="showGroupInfo" :target-id="selectedChat.target" :is-single="isSingleConversation" @close="showGroupInfo = false" />
 
+    <UserProfileCard
+      v-if="profileCard"
+      :user-id="profileCard.userId"
+      :x="profileCard.x"
+      :y="profileCard.y"
+      @close="profileCard = null"
+    />
+
     <!-- Messages -->
     <div class="messages-scroll" ref="listRef" @scroll="onScroll">
       <div v-if="isLoading" class="loading-tip">
@@ -154,6 +177,7 @@ async function toggleInfoPanel() {
         :message="msg as any"
         :prev-message="idx > 0 ? (selectedChat.protoMessages[idx - 1] as any) : undefined"
         @contextmenu="(e: MouseEvent) => emit('context-menu', e, msg)"
+        @avatar-click="onAvatarClick"
       />
     </div>
 
@@ -221,6 +245,7 @@ async function toggleInfoPanel() {
   overflow-y: auto;
   padding: 12px 0 8px;
   background: var(--bg-base);
+  overscroll-behavior: contain;
 }
 
 /* Loading dots */

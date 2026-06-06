@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 import { useMessageStore } from '@/stores/useMessageStore'
@@ -7,6 +7,7 @@ import { useConversationStore } from '@/stores/useConversationStore'
 import { useUIStore } from '@/stores/useUIStore'
 import { useGroupStore } from '@/stores/useGroupStore'
 import { useCallStore } from '@/stores/useCallStore'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import webSocketClient from '@/websocket/websocketcli'
 import { SUCCESS_CODE } from '@/constant'
 import EmojiPicker from './EmojiPicker.vue'
@@ -28,13 +29,89 @@ const groupStore = useGroupStore()
 const callStore = useCallStore()
 const message = useMessage()
 
-const { emojis } = storeToRefs(uiStore)
+const { emojis, userInfoList } = storeToRefs(uiStore)
 
 const content = ref('')
 const showEmoji = ref(false)
 const textareaRef = ref<HTMLTextAreaElement>()
 const uploadImgRef = ref<HTMLInputElement>()
 const uploadFileRef = ref<HTMLInputElement>()
+
+// @ mention
+const showAtMenu = ref(false)
+const atLoading = ref(false)
+const atQuery = ref('')
+const atStartPos = ref(-1)
+const atSelectedIndex = ref(0)
+const atCompletedPos = ref(-1) // @ position that was already handled by selection
+const isComposing = ref(false)
+
+const atMembers = computed(() => {
+  const query = atQuery.value.toLowerCase()
+  const all = { memberId: '__all__', name: '所有人', portrait: '' }
+  const members = groupStore.currentGroupMembers
+    .map(m => {
+      const info = userInfoList.value.find((u: any) => u.uid === m.memberId)
+      return {
+        memberId: m.memberId,
+        name: m.alias || info?.displayName || m.memberId,
+        portrait: info?.portrait || ''
+      }
+    })
+    .filter(m => !query || m.name.toLowerCase().includes(query))
+  const list = !query || '所有人'.includes(query) ? [all, ...members] : members
+  return list
+})
+
+function checkAtMention() {
+  if (convStore.isSingleConversation || isComposing.value) return
+  const el = textareaRef.value
+  if (!el) return
+  const pos = el.selectionStart ?? 0
+  const text = content.value
+  let i = pos - 1
+  while (i >= 0 && text[i] !== '@' && text[i] !== '\n') i--
+  if (i >= 0 && text[i] === '@') {
+    const query = text.slice(i + 1, pos)
+    if (!/\s/.test(query)) {
+      // Skip @ that was already completed via member selection
+      if (i === atCompletedPos.value) {
+        showAtMenu.value = false
+        return
+      }
+      atStartPos.value = i
+      atQuery.value = query
+      atSelectedIndex.value = 0
+      showAtMenu.value = true
+      if (groupStore.currentGroupMembers.length === 0 && !atLoading.value) {
+        atLoading.value = true
+        ;(webSocketClient as any)._instance?.getGroupMember(convStore.selectTarget).then((data: any) => {
+          if (data?.code === SUCCESS_CODE) {
+            groupStore.groupMemberMap.set(convStore.selectTarget, data.result)
+          }
+          atLoading.value = false
+        })
+      }
+      return
+    }
+  }
+  showAtMenu.value = false
+}
+
+function selectAtMember(member: { memberId: string; name: string }) {
+  const el = textareaRef.value
+  if (!el) return
+  const pos = el.selectionStart ?? 0
+  const before = content.value.slice(0, atStartPos.value)
+  const after = content.value.slice(pos)
+  content.value = before + '@' + member.name + ' ' + after
+  showAtMenu.value = false
+  nextTick(() => {
+    const newPos = atStartPos.value + member.name.length + 2
+    el.setSelectionRange(newPos, newPos)
+    el.focus()
+  })
+}
 
 const sendBtnActive = computed(() => content.value.trim().length > 0)
 
@@ -63,17 +140,52 @@ function buildAndSend(mc: any) {
   }
 }
 
+function extractMentions(): { mentionedType: number; mentionedTargets: string[] } {
+  if (convStore.isSingleConversation) return { mentionedType: 0, mentionedTargets: [] }
+  if (content.value.includes('@所有人')) return { mentionedType: 2, mentionedTargets: [] }
+  const targets: string[] = []
+  for (const m of groupStore.currentGroupMembers) {
+    const info = userInfoList.value.find((u: any) => u.uid === m.memberId)
+    const name = m.alias || info?.displayName || m.memberId
+    if (content.value.includes('@' + name)) targets.push(m.memberId)
+  }
+  return { mentionedType: targets.length ? 1 : 0, mentionedTargets: targets }
+}
+
 function send() {
   if (!content.value.trim()) { message.warning('不能发送空白信息'); return }
   try {
-    const mc = new TextMessageContent(content.value)
+    const { mentionedType, mentionedTargets } = extractMentions()
+    const mc = new TextMessageContent(content.value, mentionedType, mentionedTargets)
     buildAndSend(mc)
     content.value = ''
+    showAtMenu.value = false
     textareaRef.value?.focus()
   } catch (e) { console.error('Send text failed', e) }
 }
 
 function onKeydown(e: KeyboardEvent) {
+  if (showAtMenu.value) {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      atSelectedIndex.value = Math.max(0, atSelectedIndex.value - 1)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      atSelectedIndex.value = Math.min(atMembers.value.length - 1, atSelectedIndex.value + 1)
+      return
+    }
+    if (e.key === 'Enter' && atMembers.value.length > 0) {
+      e.preventDefault()
+      selectAtMember(atMembers.value[atSelectedIndex.value])
+      return
+    }
+    if (e.key === 'Escape') {
+      showAtMenu.value = false
+      return
+    }
+  }
   if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
     e.preventDefault(); send()
   } else if (e.key === 'Enter' && e.ctrlKey) {
@@ -180,7 +292,7 @@ function onPaste(e: ClipboardEvent) {
 </script>
 
 <template>
-  <div class="message-input">
+  <div class="message-input" style="position:relative">
     <!-- Toolbar -->
     <div class="toolbar">
       <n-popover v-model:show="showEmoji" trigger="click" placement="top-start" :show-arrow="false" style="padding:0">
@@ -223,6 +335,36 @@ function onPaste(e: ClipboardEvent) {
       </button>
     </div>
 
+    <!-- @ mention menu -->
+    <Transition name="at-fade">
+      <div v-if="showAtMenu" class="at-menu">
+        <div v-if="atLoading" class="at-loading">
+          <span class="at-spinner"></span>
+          <span>加载成员中…</span>
+        </div>
+        <template v-else-if="atMembers.length > 0">
+          <div
+            v-for="(m, i) in atMembers"
+            :key="m.memberId"
+            class="at-item"
+            :class="{ active: i === atSelectedIndex, 'at-all': m.memberId === '__all__' }"
+            @mousedown.prevent="selectAtMember(m)"
+            @mouseover="atSelectedIndex = i"
+          >
+            <div v-if="m.memberId === '__all__'" class="at-all-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <UserAvatar v-else :src="m.portrait" :name="m.name" :size="32" radius="var(--radius-sm)" />
+            <span class="at-name">{{ m.name }}</span>
+          </div>
+        </template>
+        <div v-else class="at-empty">没有匹配的成员</div>
+      </div>
+    </Transition>
+
     <!-- Text area -->
     <textarea
       ref="textareaRef"
@@ -230,9 +372,12 @@ function onPaste(e: ClipboardEvent) {
       class="text-input"
       placeholder="发送消息…"
       @keydown="onKeydown"
+      @input="checkAtMention"
+      @compositionstart="isComposing = true"
+      @compositionend="isComposing = false; checkAtMention()"
       @paste="onPaste"
       @focus="convStore.clearUnreadStatus()"
-      @click="showEmoji = false"
+      @click="showEmoji = false; showAtMenu = false"
     ></textarea>
 
     <!-- Send -->
@@ -333,5 +478,85 @@ function onPaste(e: ClipboardEvent) {
 .send-btn.active:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+/* @ mention menu */
+.at-menu {
+  position: absolute;
+  left: 16px;
+  bottom: calc(100% - 44px);
+  z-index: 300;
+  background: var(--bg-float);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px var(--shadow);
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.at-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.at-item.active,
+.at-item:hover {
+  background: var(--accent-subtle);
+}
+
+.at-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.at-all .at-name { font-weight: 600; color: var(--accent); }
+
+.at-all-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.at-loading, .at-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.at-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: at-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes at-spin { to { transform: rotate(360deg); } }
+
+.at-fade-enter-active, .at-fade-leave-active {
+  transition: opacity var(--dur-fast), transform var(--dur-fast);
+}
+.at-fade-enter-from, .at-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
 }
 </style>
