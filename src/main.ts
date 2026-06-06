@@ -5,6 +5,9 @@ import App from './App.vue'
 import router from './router'
 import './styles/variables.css'
 import './styles/reset.css'
+import { installConsoleTimestamp } from './websocket/utils/logger'
+
+installConsoleTimestamp()
 
 const app = createApp(App)
 app.use(createPinia())

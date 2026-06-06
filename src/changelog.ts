@@ -6,6 +6,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.0',
+    date: '2026-06-06',
+    items: [
+      'WebSocket 心跳重连优化：页面隐藏后重新打开可自动检测并恢复连接',
+      'PING/PONG 心跳机制：服务端响应 PONG 后更新心跳时间，超时自动断线重连',
+      '修复多重 setInterval 累积导致重复 PING 的问题',
+      '修复 onclose 重复触发导致反复重连的问题',
+      '连接断开时头像状态指示点变为红色，重连成功后恢复绿色',
+      '日志统一添加时间戳（年月日 时:分:秒）',
+    ]
+  },
+  {
     version: '1.1.9',
     date: '2026-06-05',
     items: [

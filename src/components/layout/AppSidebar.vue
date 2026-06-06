@@ -177,7 +177,7 @@ function loginOut() {
   border: 2px solid var(--bg-surface);
 }
 .online  { background: var(--color-online); animation: pulse-online 2.5s ease infinite; }
-.offline { background: var(--text-muted); }
+.offline { background: var(--danger); animation: pulse-offline 2.5s ease infinite; }
 
 /* ── Divider ─────────────────────────────── */
 .divider {

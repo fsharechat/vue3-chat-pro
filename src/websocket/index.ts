@@ -51,6 +51,9 @@ export default class VueWebSocket {
     resolvePromiseMap = new Map();
     errorHandler;
     storeDispatcher;
+    pingIntervalId;
+    timeoutId;
+    lastHeartTime;
 
     // constructor(ws_protocol,ip,port,heartbeatTimeout,reconnectInterval,binaryType,vuexStore){
     //     this.ws_protocol = ws_protocol;
@@ -77,6 +80,12 @@ export default class VueWebSocket {
         console.log("errorhandler ",this.errorHandler)
         this.initHandlerList();
         this.connect(true);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !this.userDisconnect) {
+                console.log("Page visible, checking WebSocket connection...");
+                this.reconnect0();
+            }
+        });
     }
 
     // constructor(ws_protocol,ip,port,heartbeatTimeout,reconnectInterval,binaryType){
@@ -91,6 +100,18 @@ export default class VueWebSocket {
     // }
 
     connect(isReconncect){
+        // 清理旧连接的 interval，防止多个 interval 累积
+        if (this.pingIntervalId) {
+            clearInterval(this.pingIntervalId);
+            this.pingIntervalId = null;
+        }
+        // 置空旧 ws 的回调，防止旧实例的 onclose 等事件继续触发
+        if (this.ws) {
+            this.ws.onopen = null;
+            this.ws.onmessage = null;
+            this.ws.onclose = null;
+            this.ws.onerror = null;
+        }
         this.ws = new WebSocket(this.url);
         console.log("current url "+this.url+" status "+this.ws.readyState);
         this.ws.binaryType = this.binaryType;
@@ -101,11 +122,11 @@ export default class VueWebSocket {
             websocketObj.sendAction("setOnlineStatus",true);
             websocketObj.isconnected = true;
             websocketObj.lastInteractionTime(new Date().getTime());
+            websocketObj.lastHeartTime = Date.now();
             websocketObj.pingIntervalId = setInterval(() => {
                  websocketObj.ping();
              }, websocketObj.heartbeatTimeout);
              websocketObj.userDisconnect = false;
-             //发送connect指令
              websocketObj.sendConnectMessage();
         }
         this.ws.onmessage = function(event) {
@@ -117,8 +138,8 @@ export default class VueWebSocket {
             websocketObj.isconnected = false;
             websocketObj.sendAction("setOnlineStatus",false);
             console.log("ws onclose");
-            websocketObj.ws.close();
             clearInterval(websocketObj.pingIntervalId);
+            websocketObj.pingIntervalId = null;
             if(!websocketObj.userDisconnect){
                 console.log("reconnect websocket");
                 websocketObj.errorHandler(true,"飞享服务链接关闭，等待重连")
@@ -132,11 +153,38 @@ export default class VueWebSocket {
         }
     }
 
+    reconnect0(){
+        if (this.timeoutId) return;  // 已有待执行的重连，不重复调度
+        console.log("current ws state=", this.ws.readyState)
+        if(this.ws.readyState !== WebSocket.OPEN && this.ws.readyState !== WebSocket.CONNECTING){
+            this.timeoutId = setTimeout(() => {
+                this.timeoutId = null;
+                this.connect(true)
+            }, this.reconnectInterval)
+        }
+    }
+
+    disconnect(){
+        if(this.ws){
+            console.log("disconnect close ws")
+            this.ws.close();
+            this.ws.onclose = null;
+        }
+        this.errorHandler(true,"网络断开，飞享服务链接关闭")
+        this.sendAction("setOnlineStatus", false);
+        if(this.pingIntervalId){
+            clearInterval(this.pingIntervalId);
+            this.pingIntervalId = null;
+        }
+        this.isconnected = false;
+        if(this.timeoutId){
+            clearTimeout(this.timeoutId)
+            this.timeoutId = null;
+        }
+    }
+
     reconnect(event){
-        var websocketObj = this;
-        setTimeout(() => {
-            websocketObj.connect(true);
-        }, this.reconnectInterval);
+        this.reconnect0();
     }
 
     lastInteractionTime(actionTime){
@@ -147,8 +195,22 @@ export default class VueWebSocket {
         return this.actionTime;
     }
 
+    pong(){
+        this.lastHeartTime = Date.now();
+        console.log("pong received, lastHeartTime=", this.lastHeartTime);
+    }
+
     ping(){
-        this.send('心跳内容')
+        console.log("current ws state", this.ws.readyState)
+        const currentTime = Date.now();
+        console.log("lastHeartTime=", this.lastHeartTime, " currentTime=", currentTime)
+        if (currentTime - this.lastHeartTime > HEART_BEAT_INTERVAL + 15 * 1000) {
+            console.log("System wake detected, checking WebSocket...");
+            this.disconnect();
+            this.reconnect0();
+        } else {
+            this.send('PING')
+        }
     }
 
     send(data){
@@ -203,6 +265,10 @@ export default class VueWebSocket {
     }
 
     processMessage(data){
+        if("PONG" === data){
+            this.pong()
+            return;
+        }
         var protoObj = JSON.parse(data);
         for(var i = 0; i < this.handlerList.length; i++){
             if(this.handlerList[i].match(protoObj)){
