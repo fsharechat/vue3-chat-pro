@@ -6,7 +6,7 @@ import MessageContentType from './messageContentType';
 export default class TextMessageContent extends MessageContent {
     content;
 
-    constructor(content, mentionedType = 0, mentionedTargets = []) {
+    constructor(content: string, mentionedType: number = 0, mentionedTargets: string[] = []) {
         super(MessageContentType.Text, mentionedType, mentionedTargets);
         this.content = content;
     }

@@ -32,7 +32,6 @@ export const useConversationStore = defineStore('conversation', () => {
   }
 
   function clearUnreadStatus() {
-    atMeSet.value.delete(selectTarget.value)
     const c = conversations.value.find(c => c.conversationInfo.target === selectTarget.value)
     if (c?.conversationInfo.unreadCount) {
       c.conversationInfo.unreadCount.unread = 0
