@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.4',
+    date: '2026-06-07',
+    items: [
+      '修复会话列表时间长时间不刷新的问题：UIStore 新增每分钟定时器，"刚刚"等相对时间自动更新，无需切换会话触发',
+    ]
+  },
+  {
     version: '1.2.3',
     date: '2026-06-06',
     items: [

@@ -12,7 +12,7 @@ const props = defineProps<{ conversation: StateConversationInfo; isActive: boole
 const emit = defineEmits<{ (e: 'context-menu', event: MouseEvent, conv: StateConversationInfo): void }>()
 const convStore = useConversationStore()
 const uiStore = useUIStore()
-const { userInfoList } = storeToRefs(uiStore)
+const { userInfoList, minuteTick } = storeToRefs(uiStore)
 
 const isGroup = computed(() => props.conversation.conversationInfo.conversationType === 1)
 
@@ -32,6 +32,7 @@ const lastMessageText = computed(() => {
 })
 
 const timeText = computed(() => {
+  void minuteTick.value
   const ts = props.conversation.conversationInfo.timestamp
   if (!ts) return ''
   return TimeUtils.getTimeStringAutoShort2(ts, false)

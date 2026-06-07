@@ -79,6 +79,9 @@ export const useUIStore = defineStore('ui', () => {
     { file: '195.gif', code: '/:circle', title: '跳舞', reg: /\/:circle/g },
     { file: '160.gif', code: '/:coffee', title: '咖啡', reg: /\/:coffee/g },
   ])
+  const minuteTick = ref(0)
+  setInterval(() => { minuteTick.value++ }, 60 * 1000)
+
   let _vueSocket: any = null
   let _notify: any = null
   let _inCommingNotify: any = null
@@ -207,7 +210,7 @@ export const useUIStore = defineStore('ui', () => {
     showRelayMessageDialog, showGroupCallVideoDialog, showGroupInfo,
     showMessageRightMenu, currentRightMenuMessage, waitUserIds,
     emptyMessage, isWinMaxed, stateMessageReports, groupCallMembers,
-    userInfoList, emojis, unreadTotalCount,
+    minuteTick, userInfoList, emojis, unreadTotalCount,
     currentAudioMessageId,
     initNotify, setVueSocket, setOnlineStatus, setFirstLogin, visibilityChange,
     updateUserInfos, addMessageReport, uploadReport, playMsgNotify,
