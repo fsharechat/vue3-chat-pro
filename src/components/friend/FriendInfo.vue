@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import type { FriendInfo } from '@/types'
 import webSocketClient from '@/websocket/websocketcli'
@@ -10,6 +10,13 @@ const message = useMessage()
 
 const editing = ref(false)
 const remarkInput = ref(props.friend.remark || '')
+
+function fetchFriendInfo(wxid: string) {
+  webSocketClient.getUserInfos([wxid])
+}
+
+onMounted(() => fetchFriendInfo(props.friend.wxid))
+watch(() => props.friend.wxid, fetchFriendInfo)
 
 function startEdit() {
   remarkInput.value = props.friend.remark || ''

@@ -5,6 +5,7 @@ import type { StateMessageReport, ProtoMessage } from '@/types'
 import { useConversationStore } from './useConversationStore'
 import { useGroupStore } from './useGroupStore'
 import { useAuthStore } from './useAuthStore'
+import { useFriendStore } from './useFriendStore'
 import LocalStore from '@/websocket/store/localstore'
 
 export const useUIStore = defineStore('ui', () => {
@@ -144,6 +145,7 @@ export const useUIStore = defineStore('ui', () => {
   function updateUserInfos(infos: any[]) {
     const authStore = useAuthStore()
     const convStore = useConversationStore()
+    const friendStore = useFriendStore()
     for (const info of infos) {
       if (info.uid === authStore.userId) {
         authStore.user.img = info.portrait
@@ -152,6 +154,14 @@ export const useUIStore = defineStore('ui', () => {
       const idx = userInfoList.value.findIndex((u: any) => u.uid === info.uid)
       if (idx !== -1) userInfoList.value.splice(idx, 1, info)
       else userInfoList.value.push(info)
+      // 同步到好友列表，确保好友详情页展示最新数据
+      const friend = friendStore.friendlist.find(f => f.wxid === info.uid)
+      if (friend) {
+        if (info.displayName) friend.nickname = info.displayName
+        if (info.portrait) friend.img = info.portrait
+        if (info.mobile !== undefined) friend.mobile = info.mobile
+        if (info.email !== undefined) friend.email = info.email
+      }
     }
     // Apply name/portrait to single conversations that match
     for (const sc of convStore.conversations) {

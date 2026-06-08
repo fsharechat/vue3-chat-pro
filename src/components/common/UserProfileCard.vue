@@ -57,7 +57,7 @@ function onClickOutside(e: MouseEvent) {
 }
 
 onMounted(() => {
-  if (!userInfo.value) webSocketClient.getUserInfos([props.userId])
+  webSocketClient.getUserInfos([props.userId])
   setTimeout(() => document.addEventListener('click', onClickOutside), 0)
 })
 onUnmounted(() => document.removeEventListener('click', onClickOutside))

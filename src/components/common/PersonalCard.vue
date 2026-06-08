@@ -3,6 +3,10 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useUIStore } from '@/stores/useUIStore'
 import MyInfotype from '@/websocket/message/myInfoType'
+import MessageContentMediaType from '@/websocket/message/messageContentMediaType'
+import LocalStore from '@/websocket/store/localstore'
+import webSocketClient from '@/websocket/websocketcli'
+import { UPLOAD_BY_QINIU, SUCCESS_CODE } from '@/constant'
 
 const props = defineProps<{ userId: string }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -12,6 +16,8 @@ const uiStore = useUIStore()
 
 const nicknameEl = ref<HTMLElement | null>(null)
 const extraEl = ref<HTMLElement | null>(null)
+const avatarFileInput = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
 
 const userInfo = computed(() => uiStore.userInfoList.find((u: any) => u.uid === props.userId))
 const mobile = computed(() => userInfo.value?.mobile || '')
@@ -43,6 +49,36 @@ function saveExtra(e: FocusEvent) {
   if (userInfo.value) userInfo.value.extra = newExtra
 }
 
+function openAvatarPicker() {
+  avatarFileInput.value?.click()
+}
+
+async function onAvatarChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const key = `${MessageContentMediaType.Image}-${LocalStore.getUserId()}-${Date.now()}-${file.name}`
+  uploading.value = true
+  try {
+    if (UPLOAD_BY_QINIU) {
+      // qiniu 上传略，默认走 MinIO
+    } else {
+      const data = await webSocketClient.getMinioUploadUrl(MessageContentMediaType.Image, key)
+      if (data?.code === SUCCESS_CODE) {
+        await fetch(data.result.url, { method: 'PUT', body: file })
+        const remotePath = `${data.result.domain}/${key}`
+        authStore.user.img = remotePath
+        authStore.modifyMyInfo({ type: MyInfotype.Modify_Portrait, value: remotePath })
+        const userInfo = uiStore.userInfoList.find((u: any) => u.uid === props.userId)
+        if (userInfo) userInfo.portrait = remotePath
+      }
+    }
+  } finally {
+    uploading.value = false
+    input.value = ''
+  }
+}
+
 function onClickOutside(e: MouseEvent) {
   const card = document.getElementById('personal-card-popup')
   if (card && !card.contains(e.target as Node)) {
@@ -68,7 +104,17 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
       <img
         :src="authStore.user.img || '/images/vue.jpg'"
         class="banner-img"
+        :class="{ uploading }"
+        title="点击更换头像"
         onerror="this.src='/images/vue.jpg'"
+        @click="openAvatarPicker"
+      />
+      <input
+        ref="avatarFileInput"
+        type="file"
+        accept="image/*"
+        style="display:none"
+        @change="onAvatarChange"
       />
     </div>
     <div class="card-bd">
@@ -123,6 +169,15 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   object-fit: cover;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.banner-img:hover {
+  filter: brightness(0.85);
+}
+.banner-img.uploading {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .card-bd {

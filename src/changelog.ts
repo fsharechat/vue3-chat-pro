@@ -6,6 +6,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.5',
+    date: '2026-06-08',
+    items: [
+      '个人信息卡片支持点击大头像更换头像（MinIO 上传，上传中显示等待状态）',
+      '聊天区域点击用户头像卡片：每次打开都强制拉取最新用户信息，昵称/头像实时刷新',
+      '好友详情页：选中好友时自动请求最新用户信息，服务端数据同步回好友列表',
+    ]
+  },
+  {
     version: '1.2.4',
     date: '2026-06-07',
     items: [
