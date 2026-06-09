@@ -16,12 +16,18 @@ export const useFriendStore = defineStore('friend', () => {
   const newFriendRequestCount = ref(0)
   const searchUsers = ref<any[]>([])
   const selectFriendId = ref(0)
+  const friendSearchText = ref('')
 
   const searchedFriendlist = computed(() => {
+    const keyword = friendSearchText.value.trim().toLowerCase()
     const map = new Map<string, FriendInfo[]>()
     const noInit: FriendInfo[] = []
     for (const f of friendlist.value) {
       if (f.id === 0) continue
+      if (keyword) {
+        const name = (f.remark || f.nickname || '').toLowerCase()
+        if (!name.includes(keyword)) continue
+      }
       if (f.initial) {
         if (!map.has(f.initial)) map.set(f.initial, [])
         map.get(f.initial)!.push(f)
@@ -31,7 +37,7 @@ export const useFriendStore = defineStore('friend', () => {
     }
     const sorted = [...map.keys()].sort((a, b) => a.localeCompare(b))
     const all: FriendInfo[] = []
-    if (friendlist.value.length > 0) all.push(friendlist.value[0])
+    if (!keyword && friendlist.value.length > 0) all.push(friendlist.value[0])
     noInit.forEach(f => all.push(f))
     for (const k of sorted) map.get(k)!.forEach(f => all.push(f))
     return all
@@ -126,7 +132,7 @@ export const useFriendStore = defineStore('friend', () => {
 
   return {
     friendlist, friendIds, friendDatas, friendRequests, newFriendRequestCount,
-    searchUsers, selectFriendId,
+    searchUsers, selectFriendId, friendSearchText,
     searchedFriendlist, onlyFriendlist, selectedFriend,
     updateFriendList, updateFriendIds, updateFriendRequest, updateSearchUser, handleFriendRequest,
     reset,

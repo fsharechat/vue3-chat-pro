@@ -34,6 +34,7 @@ function sendMessage() {
       img: selectedFriend.value.img,
       conversationInfo: pci as any
     })
+    convStore.updateConverstationOrder()
   }
   convStore.selectTarget = target
   router.push('/conversation')
@@ -47,7 +48,7 @@ function sendMessage() {
         <span class="panel-title">好友</span>
         <button class="add-btn" title="添加好友" @click="showSearchFriendDialog = true">+</button>
       </div>
-      <SearchBar />
+      <SearchBar v-model="friendStore.friendSearchText" placeholder="搜索好友" />
       <FriendList />
     </aside>
     <main class="info-panel">

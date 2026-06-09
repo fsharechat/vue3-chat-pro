@@ -1,6 +1,24 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useConversationStore } from '@/stores/useConversationStore'
+
+const props = withDefaults(defineProps<{
+  modelValue?: string
+  placeholder?: string
+}>(), {
+  placeholder: '搜索会话'
+})
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+
 const store = useConversationStore()
+
+const text = computed({
+  get: () => props.modelValue !== undefined ? props.modelValue : store.searchText,
+  set: (v: string) => {
+    if (props.modelValue !== undefined) emit('update:modelValue', v)
+    else store.searchText = v
+  }
+})
 </script>
 
 <template>
@@ -10,12 +28,12 @@ const store = useConversationStore()
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
       <input
-        v-model="store.searchText"
+        v-model="text"
         class="search-input"
-        placeholder="搜索会话"
+        :placeholder="placeholder"
         type="text"
       />
-      <button v-if="store.searchText" class="clear-btn" @click="store.searchText = ''">
+      <button v-if="text" class="clear-btn" @click="text = ''">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
