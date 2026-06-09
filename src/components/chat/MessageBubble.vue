@@ -25,7 +25,7 @@ const emit = defineEmits<{
 const uiStore = useUIStore()
 const convStore = useConversationStore()
 const groupStore = useGroupStore()
-const { userInfoList, stateMessageReports, emojis } = storeToRefs(uiStore)
+const { userInfoList, stateMessageReports, emojis, minuteTick } = storeToRefs(uiStore)
 const { isSingleConversation } = storeToRefs(convStore)
 const { currentGroupMemberCount } = storeToRefs(groupStore)
 
@@ -141,6 +141,7 @@ const readCountText = computed(() => {
 })
 
 function formatTime(ts: number) {
+  void minuteTick.value  // 每分钟触发重渲染，使"刚刚"等相对时间自动更新
   return TimeUtils.getTimeStringAutoShort2(ts, true)
 }
 
