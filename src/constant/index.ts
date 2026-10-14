@@ -24,6 +24,7 @@ export const FRN = 'FRN'; export const FHR = 'FHR'; export const FN = 'FN'
 export const MMI = 'MMI'; export const LRM = 'LRM'; export const MDR = 'MDR'
 export const MRP = 'MRP'; export const MRN = 'MRN'; export const MRR = 'MRR'
 export const SAI = 'SAI'
+export const ASR = 'ASR'
 
 export const HTTP_HOST = HTTP_PROTOCOL + '://' + HTTP_IP + '/'
 export const LOGIN_API = HTTP_HOST + 'login'

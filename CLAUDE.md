@@ -17,7 +17,7 @@ npm run test -- --watch     # 监听模式（文件变更自动重跑）
 npm run test -- --coverage  # 生成覆盖率报告
 ```
 
-`src/` 下目前没有项目级测试文件（`*.test.ts` / `*.spec.ts`），Vitest + `@vue/test-utils` 已配置好，可直接编写。
+Vitest 使用 jsdom 环境，测试位于仓库根目录 `tests/`（镜像 `src/` 的目录结构，用 `@/` 别名引用源码），文件名为 `*.test.ts`。
 
 ## 架构总览
 

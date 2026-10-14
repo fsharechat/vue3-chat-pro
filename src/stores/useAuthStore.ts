@@ -7,6 +7,7 @@ import { useMessageStore } from './useMessageStore'
 import { useFriendStore } from './useFriendStore'
 import { useGroupStore } from './useGroupStore'
 import { useUIStore } from './useUIStore'
+import { useTranscriptStore } from './useTranscriptStore'
 import VueWebSocket from '@/websocket/index'
 import webSocketClient from '@/websocket/websocketcli'
 import LocalStore from '@/websocket/store/localstore'
@@ -66,7 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
     const convs = LocalStore.getConversations()
     if (convs) conversationStore.conversations = convs
     const msgs = LocalStore.getMessages()
-    if (msgs) messageStore.messages = msgs
+    messageStore.hydrateMessages(msgs ?? [])
     const target = LocalStore.getSelectTarget()
     if (target) conversationStore.selectTarget = target
     const userInfos = LocalStore.getUserInfoList()
@@ -101,6 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
     friendStore.reset()
     groupStore.reset()
     uiStore.reset()
+    useTranscriptStore().reset()
   }
 
   function modifyMyInfo(value: any) {

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {PUBLISH, FP, UPUI, MP, MS, KEY_VUE_USER_ID, KEY_VUE_DEVICE_ID, DISCONNECT, GPGI, GQNUT, US, FAR, FRP, FHR, MMI, GPGM, GC, GQ, PUB_ACK, ERROR_CODE, MR, GAM, GMI, GKM, GD, GMURL, FALS, LRM, MDR, MRP, MRR, SAI} from '../constant'
+import {PUBLISH, FP, UPUI, MP, MS, KEY_VUE_USER_ID, KEY_VUE_DEVICE_ID, DISCONNECT, GPGI, GQNUT, US, FAR, FRP, FHR, MMI, GPGM, GC, GQ, PUB_ACK, ERROR_CODE, MR, GAM, GMI, GKM, GD, GMURL, FALS, LRM, MDR, MRP, MRR, SAI, ASR} from '../constant'
 import {decrypt,encrypt} from './utils/aes'
 import {CONNECT} from '../constant'
 import {WebSocketProtoMessage} from './message/websocketprotomessage'
@@ -44,6 +44,7 @@ import PullMessageReportHandler from './handler/pullMessageReportHandler';
 import NotifyMessageReportHandler from './handler/notifyMessageReportHandler';
 import ReadReportHandler from './handler/ReadReportHandler';
 import StreamingAiHandler from './handler/streamingAiHandler';
+import SpeechToTextHandler from './handler/speechToTextHandler';
 export default class VueWebSocket {
     handlerList = [];
     userDisconnect = false;
@@ -262,6 +263,7 @@ export default class VueWebSocket {
         this.handlerList.push(new PullMessageReportHandler(this))
         this.handlerList.push(new NotifyMessageReportHandler(this))
         this.handlerList.push(new StreamingAiHandler(this))
+        this.handlerList.push(new SpeechToTextHandler(this))
     }
 
     processMessage(data){
@@ -445,6 +447,13 @@ export default class VueWebSocket {
        return await this.sendPublishMessage(MR,{
             messageUid: messageUid
        })
+    }
+
+    /**
+     * 语音转文字。messageUid 超出 JS 安全整数，按字符串传
+     */
+    async speechToText(messageUid){
+        return await this.sendPublishMessage(ASR, { messageUid: messageUid })
     }
 
     async getRemoteMessages(conversation,beforeUid,count){

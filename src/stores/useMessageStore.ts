@@ -4,6 +4,7 @@ import { CONVERSATION_MAX_MESSAGE_SIZE } from '@/constant'
 import type { StateChatMessage, ProtoMessage } from '@/types'
 import { useConversationStore } from './useConversationStore'
 import { useUIStore } from './useUIStore'
+import { useTranscriptStore } from './useTranscriptStore'
 import LocalStore from '@/websocket/store/localstore'
 import MessageStatus from '@/websocket/message/messageStatus'
 import ProtoConversationInfo from '@/websocket/model/protoConversationInfo'
@@ -12,6 +13,26 @@ import MessageConfig from '@/websocket/message/messageConfig'
 import RecallMessageNotification from '@/websocket/message/notification/recallMessageNotification'
 import MessageContentType from '@/websocket/message/messageContentType'
 import webSocketClient from '@/websocket/websocketcli'
+
+// 语音「已播放」上线前本地已有的他人语音都是 Unread，首次加载时一次性置为 Played，避免升级后满屏红点
+const VOICE_PLAYED_MIGRATION_KEY = 'voice-played-migrated-v1'
+
+function isIncomingVoice(m: ProtoMessage) {
+  return m.direction === 1 && m.content?.type === MessageContentType.Voice
+}
+
+/**
+ * 新插入的他人语音：全量拉取（firstLogin）期间的历史语音直接标已播放，避免满屏红点；
+ * 实时收到的交给自动转文字队列（开关判断在 enqueueAuto 内）。
+ */
+function onVoiceInserted(m: ProtoMessage) {
+  if (!isIncomingVoice(m)) return
+  if (useUIStore().firstLogin) {
+    m.status = MessageStatus.Played
+  } else {
+    useTranscriptStore().enqueueAuto(m.messageUid)
+  }
+}
 
 export const useMessageStore = defineStore('message', () => {
   const messages = ref<StateChatMessage[]>([])
@@ -65,6 +86,7 @@ export const useMessageStore = defineStore('message', () => {
             convStore.isLoadRemoteMessage = false
           }
           chat.protoMessages.push(protoMessage)
+          onVoiceInserted(protoMessage)
           // 收到新消息（direction=1）且是当前会话，通知 MessageList 更新徽标
           if (protoMessage.direction === 1 && protoMessage.target === convStore.selectTarget) {
             triggerIncoming()
@@ -81,6 +103,7 @@ export const useMessageStore = defineStore('message', () => {
 
     if (!added) {
       messages.value.push({ target: protoMessage.target, name: '', protoMessages: [protoMessage] })
+      onVoiceInserted(protoMessage)
     }
 
     if (!isExist) {
@@ -164,7 +187,35 @@ export const useMessageStore = defineStore('message', () => {
     const chat = messages.value.find(m => m.target === protoMessage.target)
     if (chat) {
       const exists = chat.protoMessages.find((m: any) => m.messageId === protoMessage.messageId)
-      if (!exists) chat.protoMessages.unshift(protoMessage)
+      if (!exists) {
+        // 上滑加载的是历史消息，多半已在其他端听过，不显示红点
+        if (isIncomingVoice(protoMessage)) protoMessage.status = MessageStatus.Played
+        chat.protoMessages.unshift(protoMessage)
+      }
+    }
+  }
+
+  /** 从 localStorage 恢复消息。首次升级时把已有的他人语音一次性置为已播放 */
+  function hydrateMessages(chats: StateChatMessage[]) {
+    if (localStorage.getItem(VOICE_PLAYED_MIGRATION_KEY) !== '1') {
+      for (const chat of chats) {
+        for (const m of chat.protoMessages as ProtoMessage[]) {
+          if (isIncomingVoice(m)) m.status = MessageStatus.Played
+        }
+      }
+      localStorage.setItem(VOICE_PLAYED_MIGRATION_KEY, '1')
+    }
+    messages.value = chats
+  }
+
+  /** 他人语音被播放或被点击「转文字」后置为已播放，随 messages 持久化 */
+  function markPlayed(messageId: string) {
+    for (const chat of messages.value) {
+      const m = chat.protoMessages.find((p: any) => p.messageId === messageId)
+      if (m) {
+        if (m.direction === 1) m.status = MessageStatus.Played
+        return
+      }
     }
   }
 
@@ -275,7 +326,7 @@ export const useMessageStore = defineStore('message', () => {
   return {
     messages, fileDownloadStatus, streamingMap, streamingTokenCount, pendingReplacementTargets,
     selectedChat, currentMessages,
-    addProtoMessage, preAddProtoMessage, addOldMessage, deleteMessage,
+    addProtoMessage, preAddProtoMessage, addOldMessage, deleteMessage, hydrateMessages, markPlayed,
     updateMessageContent, updateProtoMessageUid, updateMessageStatus,
     appendStreamingContent, setFileDownloadStatus, updateSendMessage,
     scrollBottomTrigger, triggerScrollBottom,
