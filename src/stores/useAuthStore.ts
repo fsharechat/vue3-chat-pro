@@ -42,6 +42,11 @@ export const useAuthStore = defineStore('auth', () => {
         updateGroupInfos:         () => groupStore.updateGroupInfos(data),
         updateTempGroupMember:    () => groupStore.updateTempGroupMember(data),
         addProtoMessage:          () => messageStore.addProtoMessage(data),
+        applyConversationGap:     () => {
+          if (messageStore.applyConversationGap(data.conversation.target, data.beforeUid)) {
+            messageStore.fillTailGap(data.conversation.conversationType, data.conversation.target)
+          }
+        },
         updateConversationInfo:   () => conversationStore.updateConversationInfo(data),
         updateProtoMessageUid:    () => messageStore.updateProtoMessageUid(data),
         updateMessageStatus:      () => messageStore.updateMessageStatus(data),
